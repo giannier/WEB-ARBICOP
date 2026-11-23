@@ -6,6 +6,7 @@
 /*
 !/.gitignore
 !/.editorconfig
+!/.gitattributes
 !/.cpanel.yml
 !/README.md
 !/DEPLOY.md
