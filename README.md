@@ -81,7 +81,7 @@ docker compose -p web-arbicop up -d db wordpress                              # 
 Production is cPanel Git Version Control (repo cloned outside the docroot, `.cpanel.yml` copies `dist/`, the shop chrome mu-plugin and the cart mu-plugin with `cp` only).
 Full procedure (backup, SSH deploy key, cutover of the legacy WordPress root, smoke test, rollback): **[DEPLOY.md](DEPLOY.md)** (Spanish).
 Workflow: edit `src/` -> `npm run build` -> `npm run check` -> commit (`src/`, `dist/` and the generated `tienda/.../arbicop-chrome/`) -> push -> cPanel "Update from Remote" + "Deploy HEAD Commit" -> `sh tools/post-deploy-check.sh https://arbicop.com`.
-The shop (/tienda) header, menu, footer and cart icon come from the same `src/layouts/` as the static site (see "Shop chrome" in DEPLOY.md, which also documents the kill switch).
+The shop (/tienda) header, menu, footer and cart icon come from the same `src/layouts/` as the static site (see "Qué controla este repo y qué sigue en WordPress" and "Interruptor de emergencia y rollback de cabecera/pie" in DEPLOY.md, which document the ownership split and the kill switch). `npm run check` also guards the shop mu-plugins (`tools/check-chrome.mjs`); `node tools/check-chrome-live.mjs` is the live check against the local Docker shop.
 Rehearsal in Docker (clean/stale accounts, cutover, redeploy, rollback; results in `docker/deploy-test/results.md`):
 
 ```bash

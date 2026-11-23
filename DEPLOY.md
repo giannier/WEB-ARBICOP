@@ -156,16 +156,17 @@ fi
 grep -n 'AddHandler\|cPanel-generated' "$DOC/.htaccess"
 ```
 
-3. **Atención PHP**: `dist/.htaccess` se copia en **cada** despliegue y sustituye el `.htaccess` del docroot, así que el bloque de PHP del punto 2b se pierde en el siguiente despliegue. Después de **cada** despliegue abre cPanel > **MultiPHP Manager** y comprueba que `arbicop.com` sigue en la versión anotada (si cambió, vuelve a guardarla; cPanel reescribe el bloque) y que `/tienda/` y `/api/token.php` responden. Solución definitiva pendiente de tu decisión: incluir ese bloque en `src/public/.htaccess` (ver "Decisiones a confirmar").
-   - **OBLIGATORIO justo después de CADA "Deploy HEAD Commit"** (no es opcional): ejecuta el verificador posterior al despliegue. Comprueba que PHP se ejecuta (`/api/token.php` devuelve JSON, no código fuente), que `/libro-de-reclamaciones/`, `/tienda/` y `/` responden 200, que `/api/config.php` y `/api/storage/` dan 403 y muestra la versión de PHP si el servidor la expone. Sale con código distinto de 0 si algo falla.
+3. **Verificador posterior al despliegue (OBLIGATORIO justo después de CADA "Deploy HEAD Commit", no es opcional)**:
+   - Comprueba que PHP se ejecuta (`/api/token.php` devuelve JSON, no código fuente), que `/libro-de-reclamaciones/`, `/tienda/` y `/` responden 200, que `/api/config.php` y `/api/storage/` dan 403 que `/tienda/` muestra la cabecera y el pie del repo (marcas `data-arbicop-chrome`) y muestra la versión de PHP si el servidor la expone. Sale con código distinto de 0 si algo falla.
    - En cPanel > **Terminal**: `cd ~/repos/WEB-ARBICOP && sh tools/post-deploy-check.sh https://arbicop.com`. Desde tu PC (Git Bash o WSL, solo necesita `curl`): `sh tools/post-deploy-check.sh https://arbicop.com`.
-   - Si algún control sale `FAIL`: abre MultiPHP Manager (ver arriba), vuelve a guardar la versión de PHP, repite el verificador; si sigue fallando, rollback (paso 6). El verificador no reemplaza la revisión de MultiPHP Manager: la línea `MultiPHP check needed` del final te lo recuerda, y si el servidor no expone `X-Powered-By` no puede mostrarte la versión.
-4. **Secretos del libro de reclamaciones** (`api/config.secret.php`), solo la primera vez:
+   - Si algún control sale `FAIL`: abre MultiPHP Manager (paso 4.4), vuelve a guardar la versión de PHP, repite el verificador; si sigue fallando, rollback (paso 6). El verificador no reemplaza la revisión de MultiPHP Manager: la línea `MultiPHP check needed` del final te lo recuerda, y si el servidor no expone `X-Powered-By` no puede mostrarte la versión.
+4. **Atención PHP (MultiPHP Manager)**: `dist/.htaccess` se copia en **cada** despliegue y sustituye el `.htaccess` del docroot, así que el bloque de PHP del punto 2b se pierde en el siguiente despliegue. Después de **cada** despliegue, además del verificador (paso 4.3), abre cPanel > **MultiPHP Manager** y comprueba que `arbicop.com` sigue en la versión anotada (si cambió, vuelve a guardarla; cPanel reescribe el bloque) y que `/tienda/` y `/api/token.php` responden. Solución definitiva pendiente de tu decisión: incluir ese bloque en `src/public/.htaccess` (ver "Decisiones a confirmar").
+5. **Secretos del libro de reclamaciones** (`api/config.secret.php`), solo la primera vez:
    - cPanel > **Email Accounts** > crea `reclamaciones@arbicop.com` (contraseña larga) y en *Connect Devices* confirma el servidor SMTP de salida (SSL, 465). El código asume `mail.arbicop.com`; si es otro, se cambia `smtp.host` en `src/public/api/config.php` y se vuelve a desplegar. Si el certificado no coincide con el host, el envío falla (ver log en el paso 5).
    - cPanel > **File Manager** > `public_html/api/` : copia `config.secret.example.php` como `config.secret.php` y edítalo: `smtp_password` = contraseña de ese correo; `mail_dry_run` debe quedar en `false`; hCaptcha es opcional (vacío).
    - Permisos: `config.secret.php` **640**; `api/storage/` y subcarpetas **750/755** (escribibles por PHP).
    - Ese archivo **nunca** va al repo y `cp -R dist/.` **no lo toca** (ni `api/storage/`) en despliegues futuros.
-5. Revisa `/home/arbicopc/repos/WEB-ARBICOP/src/public/api/config.php`: los datos marcados `TODO` (sufijo de la razón social, host SMTP, redacción legal de los 15 días hábiles) deben estar confirmados antes de dar el sitio por bueno.
+6. Revisa `/home/arbicopc/repos/WEB-ARBICOP/src/public/api/config.php`: los datos marcados `TODO` (sufijo de la razón social, host SMTP, redacción legal de los 15 días hábiles) deben estar confirmados antes de dar el sitio por bueno.
 
 ## 5. Smoke test (checklist, ventana privada)
 
@@ -248,7 +249,7 @@ Para volver a poner el sitio estático después: repite 3 y 4 (el correlativo y 
 Síntomas: `/tienda/` da error 500, pantalla en blanco, cabecera rota o el carrito no actualiza tras el despliegue.
 
 1. Mira `public_html/tienda/php_errorlog` y el `error_log` del dominio (cPanel > Errors).
-2. Comprueba la versión de PHP (MultiPHP Manager): si el despliegue quitó el bloque de PHP y cambió la versión, vuelve a guardarla (paso 4.3).
+2. Comprueba la versión de PHP (MultiPHP Manager): si el despliegue quitó el bloque de PHP y cambió la versión, vuelve a guardarla (paso 4.4).
 3. Si el error nombra uno de los archivos propios, o la cabecera/pie nuevos se ven mal, apártalos (se mueven, no se borran) y recarga `/tienda/`. La tienda vuelve sola a su cabecera y pie originales (ver "Interruptor de emergencia" más abajo para la alternativa sin mover archivos):
 
 <!-- sim:shopfix -->
@@ -307,20 +308,17 @@ Supuestos no verificados: el entorno local de la tienda es una copia del volcado
 
 ## Flujo de trabajo
 
-1. Edita `src/` (páginas, `src/layouts/header.html` / `footer.html`, estilos).
-2. `npm run build` y `npm run check` (regeneran `dist/` y `tienda/wp-content/mu-plugins/arbicop-chrome/`).
-3. `python tools/check-cpanel-yml.py` si tocaste `.cpanel.yml` o el mu-plugin.
-4. Commit **incluyendo `dist/` y `arbicop-chrome/`** (cPanel no ejecuta npm) y `git push`.
+1. Edita `src/` (páginas, `src/layouts/header.html` / `footer.html`, estilos). Los secretos solo viven en `api/config.secret.php` (servidor); los cambios de `src/public/api/config.php` se despliegan por este mismo flujo.
+2. `npm run build` regenera `dist/` **y** `tienda/wp-content/mu-plugins/arbicop-chrome/` (cabecera/pie de la tienda); luego `npm run check` (incluye `tools/check-chrome.mjs`: errores de namespace en los mu-plugins, `php -l` y sumas de control).
+3. `python tools/check-cpanel-yml.py` (obligatorio si tocaste `.cpanel.yml` o los mu-plugins; también valida las sumas de control del chrome).
+4. Commit **incluyendo `dist/` y `tienda/wp-content/mu-plugins/arbicop-chrome/`** (cPanel no ejecuta npm) y `git push`.
 5. cPanel > Git Version Control > *Update from Remote* y luego *Deploy HEAD Commit*.
-6. `sh tools/post-deploy-check.sh https://arbicop.com` (obligatorio) y revisa MultiPHP Manager.
+6. `sh tools/post-deploy-check.sh https://arbicop.com` (obligatorio, paso 4.3) y repite el control de MultiPHP Manager (paso 4.4); mira rápido `/` y `/tienda/`.
+7. Revisa los reclamos pendientes de envío (sección "Revisión de pendientes"): semanal y tras cualquier cambio de SMTP.
 
-## Mantenimiento habitual
+Opcional con la tienda local levantada (Docker): `node tools/check-chrome-live.mjs` prueba con eventos reales de ratón que el menú y el menú hamburguesa funcionan en carrito, checkout, mi cuenta y búsqueda sin resultados.
 
-1. Edita `src/`, ejecuta `npm run build` y `npm run check`.
-2. Commit **incluyendo `dist/`** (cPanel no ejecuta npm), push a GitHub.
-3. cPanel > Git Version Control > *Update from Remote* > *Deploy HEAD Commit*; luego **ejecuta obligatoriamente** `sh tools/post-deploy-check.sh https://arbicop.com` (paso 4.3), repite el control de MultiPHP Manager y mira rápido `/` y `/tienda/`.
-4. Cambios en `src/public/api/config.php` también se despliegan así. Los secretos solo viven en `api/config.secret.php` (servidor).
-5. Revisa los reclamos pendientes de envío (sección "Revisión de pendientes"): semanal y tras cualquier cambio de SMTP.
+**`git revert` + redeploy NO deshace la cabecera/pie de la tienda**: `cp` nunca borra, así que los archivos ya copiados en `tienda/wp-content/mu-plugins/` siguen activos aunque el commit se revierta. Para apagarla usa el interruptor de emergencia (archivo `arbicop-chrome.off`, constante `ARBICOP_CHROME_DISABLE` o mover los archivos; ver "Interruptor de emergencia y rollback de cabecera/pie").
 
 ## Revisión de pendientes (Libro de Reclamaciones)
 
