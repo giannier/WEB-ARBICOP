@@ -4,12 +4,14 @@
   "private": true,
   "description": "Static clone of arbicop.com (Elementor render) with shared header/footer layouts and a zero-dependency build.",
   "type": "module",
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "build": "node build.mjs",
     "watch": "node build.mjs --watch",
     "dev": "node build.mjs --serve",
-    "check": "node tools/check-assets.mjs",
+    "check": "node tools/check-assets.mjs && node tools/check-chrome.mjs",
     "compare": "node tools/visual-compare.mjs"
   }
 }

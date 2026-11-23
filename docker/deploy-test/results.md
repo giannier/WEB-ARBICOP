@@ -1,6 +1,6 @@
 # Deploy simulation results (cPanel Git deploy, cutover, rollback)
 
-Run: 2026-11-23T21:03:01Z  -  **285 PASS / 0 FAIL**
+Run: 2026-11-23T21:15:53Z  -  **285 PASS / 0 FAIL**
 
 Setup: Apache 2.4 + mod_php 8.1 (docker/deploy-test/Dockerfile) running as user `arbicopc`; docroot `/home/arbicopc/public_html`; repo created with `git init` + commit of the .gitignore allow-list and `git clone` to `/home/arbicopc/repos/WEB-ARBICOP`; `.cpanel.yml` and the DEPLOY.md blocks (cutover, postdeploy, rollback, shopfix) are extracted and executed UNMODIFIED by `docker/deploy-test/cpanel-run.sh` / `run-block.sh`. Ports: stale 8090, clean 8092 (8091 is used by another project). Mail is dry-run.
 
@@ -163,7 +163,7 @@ NOT verified here: the real cPanel run of .cpanel.yml, LiteSpeed, real SMTP, izi
 | PASS | kept: tienda, .well-known, cgi-bin, wp-content (uploads only) |  |
 | PASS | no legacy WordPress root file/folder is left in the docroot |  |
 | PASS | wp-content/ keeps ONLY uploads/ |  |
-| PASS | everything moved is in /home/arbicopc/respaldos/wp-root-20261123-210131 (nothing deleted) |  |
+| PASS | everything moved is in /home/arbicopc/respaldos/wp-root-20261123-211411 (nothing deleted) |  |
 | PASS | backup folder mode 700 (wp-config.php with old credentials is not world-readable) |  |
 | PASS | uploads/.htaccess (PHP denied) created |  |
 | PASS | tienda/ untouched by the cutover |  |
@@ -254,7 +254,7 @@ NOT verified here: the real cPanel run of .cpanel.yml, LiteSpeed, real SMTP, izi
 | PASS | (sim) new commit pushed + cPanel 'Update from Remote' (git pull) |  |
 | PASS | redeploy exit 0 |  |
 | PASS | GET /robots.txt  body ~ # redeploy marker |  |
-| PASS | api/storage runtime data + config.secret.php byte-identical after redeploy (hash c5eebbd6da4e) |  |
+| PASS | api/storage runtime data + config.secret.php byte-identical after redeploy (hash 2f1755929f58) |  |
 | PASS | config.secret.php unchanged |  |
 | PASS | config.secret.php mode still 640 |  |
 | PASS | counter.dat unchanged ({"year":2026,"number":2}) |  |
@@ -287,7 +287,7 @@ NOT verified here: the real cPanel run of .cpanel.yml, LiteSpeed, real SMTP, izi
 | PASS | GET /tienda/  body ~ TIENDA-STUB uri=/tienda/ |  |
 | PASS | GET /.well-known/acme-challenge/TESTTOKEN123  body ~ ACME-TOKEN-STUB |  |
 | PASS | GET /robots.txt  body ~ LEGACY-WP-HOME uri=/robots.txt |  |
-| PASS | api/storage + config.secret.php untouched by rollback (hash 193c299d35a3) |  |
+| PASS | api/storage + config.secret.php untouched by rollback (hash a346c4c2ff19) |  |
 | PASS | config.secret.php identical |  |
 | PASS | all 3 archived sheets still on disk |  |
 | PASS | every file of the original legacy docroot is back, byte-identical (sha256sum -c) |  |
