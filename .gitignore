@@ -1,6 +1,6 @@
 # ARBICOP repo layout: static site (src/ -> dist/, dist/ committed on purpose: cPanel does not run npm),
-# local Docker env, tooling, and the shop's custom code only. Everything else at the root is the LEGACY WordPress
-# install (kept on disk until the cutover, never tracked).
+# local Docker env, tooling, and the shop's custom code only. Allow-list: anything not listed below stays untracked.
+# The legacy WordPress copies were moved out of the project (see README "Project structure").
 
 # --- root: ignore everything, then allow-list what belongs to the repo ---
 /*
@@ -16,7 +16,6 @@
 !/src/
 !/dist/
 !/tools/
-!/docs/
 !/docker/
 !/docker-compose.yml
 !/docker-compose.static.yml
@@ -37,12 +36,11 @@ config.secret.php
 docker/wp-config.*.php
 docker/screenshots/*
 !docker/screenshots/static-diff.md
-docker/backups/*.sql
 wp-config.php
 .env
 .env.*
 
-# --- shop (/tienda, separate WordPress + WooCommerce): track custom code only ---
+# --- shop (/tienda, separate WordPress + WooCommerce): track custom code only (a restored WP copy stays untracked) ---
 # Active theme is the stock hello-elementor, so the (inactive) child theme is NOT tracked.
 /tienda/*
 !/tienda/wp-content/
@@ -55,6 +53,7 @@ wp-config.php
 
 # --- backups / dumps / logs ---
 *.sql
+!docker/initdb/*.sql
 *.zip
 *.tgz
 *.log

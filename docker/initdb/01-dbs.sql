@@ -1,0 +1,4 @@
+CREATE DATABASE IF NOT EXISTS arbicopc_504 CHARACTER SET utf8mb4;
+CREATE DATABASE IF NOT EXISTS arbicopc_wp847 CHARACTER SET utf8mb4;
+GRANT ALL ON arbicopc_504.* TO 'wp'@'%';
+GRANT ALL ON arbicopc_wp847.* TO 'wp'@'%';
