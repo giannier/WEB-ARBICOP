@@ -1,11 +1,10 @@
 <?php
 /**
  * Plugin Name: ARBICOP shop header cart icon
- * Description: Shortcode [arbicop_cart] (placed in the shop header template #20 as an Elementor shortcode widget,
- *              see docker/header-footer/build.py). Renders a cart link to the WooCommerce cart page with a live
- *              item-count badge and (desktop) subtotal. Updated by WooCommerce cart fragments
- *              (woocommerce_add_to_cart_fragments + wc-cart-fragments), so ajax add-to-cart refreshes it.
- *              Works on every shop page including cart, checkout and my-account (no Elementor side-cart panel).
+ * Description: Shortcode [arbicop_cart], rendered inside the shop header by arbicop-chrome.php (slot {{shop:cart}}).
+ *              Cart link to the WooCommerce cart page with a live item-count badge and (desktop) subtotal, refreshed
+ *              by WooCommerce cart fragments (woocommerce_add_to_cart_fragments + wc-cart-fragments). CSS and the
+ *              fragments script are only added while the chrome is active (fail-safe: chrome off = shop untouched).
  */
 if (!defined('ABSPATH')) exit;
 
@@ -27,7 +26,10 @@ add_filter('woocommerce_add_to_cart_fragments', function ($f) {
     return $f;
 });
 
-add_action('wp_head', function () { ?>
+// Header CSS and the cart-fragments script are only needed when the shop chrome (arbicop-chrome.php) is rendering the header.
+function arbicop_cart_chrome_on() { return function_exists('arbicop_chrome_is_active') && arbicop_chrome_is_active(); }
+
+add_action('wp_head', function () { if (!arbicop_cart_chrome_on()) return; ?>
 <style id="arbicop-shop-cart">
 .elementor-location-header a.arbicop-cart,.arbicop-cart{position:relative;display:inline-flex;align-items:center;gap:10px;color:#030D67;text-decoration:none;font-family:"DM Sans",sans-serif;font-weight:600;font-size:15px;line-height:1;padding:8px 4px;white-space:nowrap}
 .elementor-location-header a.arbicop-cart{color:#030D67}
@@ -35,16 +37,15 @@ add_action('wp_head', function () { ?>
 .arbicop-cart__icon{display:block;flex:none}
 .arbicop-cart__count{position:absolute;top:-2px;left:20px;min-width:18px;height:18px;padding:0 5px;box-sizing:border-box;border-radius:9px;background:#2B9BE8;color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center}
 .arbicop-cart__count.is-empty{background:#9aa3c7}
-.elementor-location-header .elementor-widget-shortcode{width:auto;flex:none}
-@media(max-width:1023px){
- .arbicop-cart__subtotal{display:none}
- .elementor-location-header .elementor-widget-nav-menu{margin-left:auto}
- .elementor-location-header .elementor-widget-shortcode{margin-left:4px}
-}
+/* Cart slot: out of the flex flow so the logo/menu keep exactly the static-site layout; sits in the empty right side of the main bar. */
+[data-arbicop-chrome="header"] .e-con-inner{position:relative}
+[data-arbicop-chrome="header"] .arbicop-chrome-cart{position:absolute;right:0;top:50%;transform:translateY(-50%);width:auto;margin:0;z-index:2}
+@media(max-width:1024px){.arbicop-cart__subtotal{display:none}[data-arbicop-chrome="header"] .arbicop-chrome-cart{right:64px}}
 </style>
 <?php }, 99);
 
 // WooCommerce 11 no longer loads cart fragments everywhere; the header badge needs them on every shop page.
 add_action('wp_enqueue_scripts', function () {
+    if (!arbicop_cart_chrome_on()) return;
     if (wp_script_is('wc-cart-fragments', 'registered')) wp_enqueue_script('wc-cart-fragments');
 }, 30);
