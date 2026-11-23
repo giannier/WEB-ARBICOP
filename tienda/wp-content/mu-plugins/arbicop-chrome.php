@@ -132,8 +132,8 @@ if (!function_exists('arbicop_chrome_config')) {
     function arbicop_chrome_boot_elementor() {
         try {
             $m = arbicop_chrome_config()['manifest'];
-            if (class_exists('ElementorPlugin') && !empty(ElementorPlugin::$instance->frontend)) {
-                $f = ElementorPlugin::$instance->frontend;
+            if (class_exists('\Elementor\Plugin') && !empty(\Elementor\Plugin::$instance->frontend)) {
+                $f = \Elementor\Plugin::$instance->frontend;
                 if (!$f->has_elementor_in_page()) {
                     $f->enqueue_styles();
                     $f->enqueue_scripts();
@@ -142,7 +142,7 @@ if (!function_exists('arbicop_chrome_config')) {
             foreach ((array) ($m['js'] ?? []) as $handle) {
                 if (is_string($handle) && wp_script_is($handle, 'registered')) wp_enqueue_script($handle);
             }
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
         }
     }
 
