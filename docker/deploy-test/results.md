@@ -1,6 +1,6 @@
 # Deploy simulation results (cPanel Git deploy, cutover, rollback)
 
-Run: 2026-11-23T15:38:52Z  -  **276 PASS / 0 FAIL**
+Run: 2026-11-23T21:03:01Z  -  **285 PASS / 0 FAIL**
 
 Setup: Apache 2.4 + mod_php 8.1 (docker/deploy-test/Dockerfile) running as user `arbicopc`; docroot `/home/arbicopc/public_html`; repo created with `git init` + commit of the .gitignore allow-list and `git clone` to `/home/arbicopc/repos/WEB-ARBICOP`; `.cpanel.yml` and the DEPLOY.md blocks (cutover, postdeploy, rollback, shopfix) are extracted and executed UNMODIFIED by `docker/deploy-test/cpanel-run.sh` / `run-block.sh`. Ports: stale 8090, clean 8092 (8091 is used by another project). Mail is dry-run.
 
@@ -71,9 +71,9 @@ NOT verified here: the real cPanel run of .cpanel.yml, LiteSpeed, real SMTP, izi
 | Result | Check | Detail |
 |---|---|---|
 | PASS | all 4 tasks succeed when tienda/wp-content/mu-plugins/ exists (rc=0) |  |
-| PASS | mu-plugins/arbicop-shared-header.php installed |  |
-| PASS | mu-plugins/arbicop-shared-header.css installed |  |
+| PASS | mu-plugins/arbicop-chrome.php installed |  |
 | PASS | mu-plugins/arbicop-shop-cart.php installed |  |
+| PASS | mu-plugins/arbicop-chrome/ installed (cp -R), identical to repo |  |
 | PASS | every file of dist/ is present in the docroot, byte-identical |  |
 | PASS | no config.secret.php was created by the deploy |  |
 
@@ -133,10 +133,10 @@ NOT verified here: the real cPanel run of .cpanel.yml, LiteSpeed, real SMTP, izi
 | PASS | PDF download for LR-2026-0001 is a PDF |  |
 | PASS | LR-2026-0001 archived (pdf) + dry-run .eml written under api/storage |  |
 | PASS | tools/post-deploy-check.sh exit 0 |  |
-| PASS | tienda/ untouched byte-for-byte (all files except the 3 custom mu-plugins) sha=f241c542e8ef |  |
-| PASS | tienda/wp-content/mu-plugins/arbicop-shared-header.php installed, identical to repo |  |
-| PASS | tienda/wp-content/mu-plugins/arbicop-shared-header.css installed, identical to repo |  |
+| PASS | tienda/ untouched byte-for-byte (all files except the shop chrome + cart mu-plugins) sha=49f623ec386a |  |
+| PASS | tienda/wp-content/mu-plugins/arbicop-chrome.php installed, identical to repo |  |
 | PASS | tienda/wp-content/mu-plugins/arbicop-shop-cart.php installed, identical to repo |  |
+| PASS | tienda/wp-content/mu-plugins/arbicop-chrome/ installed, identical to repo (header, footer, css, manifest) |  |
 | PASS | GET /tienda/  body ~ TIENDA-STUB uri=/tienda/ |  |
 | PASS | GET /tienda/producto-x/  body ~ TIENDA-STUB uri=/tienda/producto-x/ |  |
 | PASS | GET /tienda/wp-content/uploads/2026/01/product.png  -> 200 |  |
@@ -163,7 +163,7 @@ NOT verified here: the real cPanel run of .cpanel.yml, LiteSpeed, real SMTP, izi
 | PASS | kept: tienda, .well-known, cgi-bin, wp-content (uploads only) |  |
 | PASS | no legacy WordPress root file/folder is left in the docroot |  |
 | PASS | wp-content/ keeps ONLY uploads/ |  |
-| PASS | everything moved is in /home/arbicopc/respaldos/wp-root-20261123-153735 (nothing deleted) |  |
+| PASS | everything moved is in /home/arbicopc/respaldos/wp-root-20261123-210131 (nothing deleted) |  |
 | PASS | backup folder mode 700 (wp-config.php with old credentials is not world-readable) |  |
 | PASS | uploads/.htaccess (PHP denied) created |  |
 | PASS | tienda/ untouched by the cutover |  |
@@ -222,10 +222,10 @@ NOT verified here: the real cPanel run of .cpanel.yml, LiteSpeed, real SMTP, izi
 | PASS | PDF download for LR-2026-0001 is a PDF |  |
 | PASS | LR-2026-0001 archived (pdf) + dry-run .eml written under api/storage |  |
 | PASS | tools/post-deploy-check.sh exit 0 |  |
-| PASS | tienda/ untouched byte-for-byte (all files except the 3 custom mu-plugins) sha=f241c542e8ef |  |
-| PASS | tienda/wp-content/mu-plugins/arbicop-shared-header.php installed, identical to repo |  |
-| PASS | tienda/wp-content/mu-plugins/arbicop-shared-header.css installed, identical to repo |  |
+| PASS | tienda/ untouched byte-for-byte (all files except the shop chrome + cart mu-plugins) sha=49f623ec386a |  |
+| PASS | tienda/wp-content/mu-plugins/arbicop-chrome.php installed, identical to repo |  |
 | PASS | tienda/wp-content/mu-plugins/arbicop-shop-cart.php installed, identical to repo |  |
+| PASS | tienda/wp-content/mu-plugins/arbicop-chrome/ installed, identical to repo (header, footer, css, manifest) |  |
 | PASS | GET /tienda/  body ~ TIENDA-STUB uri=/tienda/ |  |
 | PASS | GET /tienda/producto-x/  body ~ TIENDA-STUB uri=/tienda/producto-x/ |  |
 | PASS | GET /tienda/wp-content/uploads/2026/01/product.png  -> 200 |  |
@@ -254,7 +254,7 @@ NOT verified here: the real cPanel run of .cpanel.yml, LiteSpeed, real SMTP, izi
 | PASS | (sim) new commit pushed + cPanel 'Update from Remote' (git pull) |  |
 | PASS | redeploy exit 0 |  |
 | PASS | GET /robots.txt  body ~ # redeploy marker |  |
-| PASS | api/storage runtime data + config.secret.php byte-identical after redeploy (hash e6299e90ff3b) |  |
+| PASS | api/storage runtime data + config.secret.php byte-identical after redeploy (hash c5eebbd6da4e) |  |
 | PASS | config.secret.php unchanged |  |
 | PASS | config.secret.php mode still 640 |  |
 | PASS | counter.dat unchanged ({"year":2026,"number":2}) |  |
@@ -263,10 +263,10 @@ NOT verified here: the real cPanel run of .cpanel.yml, LiteSpeed, real SMTP, izi
 | PASS | PDF of LR-2026-0002 still downloadable with its original key after redeploy |  |
 | PASS | numbering continues after redeploy: LR-2026-0002 -> LR-2026-0003 |  |
 | PASS | GET /api/storage/counter.dat  -> 403 |  |
-| PASS | tienda/ untouched byte-for-byte (all files except the 3 custom mu-plugins) sha=f241c542e8ef |  |
-| PASS | tienda/wp-content/mu-plugins/arbicop-shared-header.php installed, identical to repo |  |
-| PASS | tienda/wp-content/mu-plugins/arbicop-shared-header.css installed, identical to repo |  |
+| PASS | tienda/ untouched byte-for-byte (all files except the shop chrome + cart mu-plugins) sha=49f623ec386a |  |
+| PASS | tienda/wp-content/mu-plugins/arbicop-chrome.php installed, identical to repo |  |
 | PASS | tienda/wp-content/mu-plugins/arbicop-shop-cart.php installed, identical to repo |  |
+| PASS | tienda/wp-content/mu-plugins/arbicop-chrome/ installed, identical to repo (header, footer, css, manifest) |  |
 | PASS | GET /tienda/  body ~ TIENDA-STUB uri=/tienda/ |  |
 | PASS | GET /tienda/producto-x/  body ~ TIENDA-STUB uri=/tienda/producto-x/ |  |
 | PASS | GET /tienda/wp-content/uploads/2026/01/product.png  -> 200 |  |
@@ -287,7 +287,7 @@ NOT verified here: the real cPanel run of .cpanel.yml, LiteSpeed, real SMTP, izi
 | PASS | GET /tienda/  body ~ TIENDA-STUB uri=/tienda/ |  |
 | PASS | GET /.well-known/acme-challenge/TESTTOKEN123  body ~ ACME-TOKEN-STUB |  |
 | PASS | GET /robots.txt  body ~ LEGACY-WP-HOME uri=/robots.txt |  |
-| PASS | api/storage + config.secret.php untouched by rollback (hash 066b53219e3f) |  |
+| PASS | api/storage + config.secret.php untouched by rollback (hash 193c299d35a3) |  |
 | PASS | config.secret.php identical |  |
 | PASS | all 3 archived sheets still on disk |  |
 | PASS | every file of the original legacy docroot is back, byte-identical (sha256sum -c) |  |
@@ -306,10 +306,10 @@ NOT verified here: the real cPanel run of .cpanel.yml, LiteSpeed, real SMTP, izi
 | PASS | GET / identical to dist/index.html |  |
 | PASS | state still identical after re-applying |  |
 | PASS | numbering continues: LR-2026-0003 -> LR-2026-0004 |  |
-| PASS | tienda/ untouched byte-for-byte (all files except the 3 custom mu-plugins) sha=f241c542e8ef |  |
-| PASS | tienda/wp-content/mu-plugins/arbicop-shared-header.php installed, identical to repo |  |
-| PASS | tienda/wp-content/mu-plugins/arbicop-shared-header.css installed, identical to repo |  |
+| PASS | tienda/ untouched byte-for-byte (all files except the shop chrome + cart mu-plugins) sha=49f623ec386a |  |
+| PASS | tienda/wp-content/mu-plugins/arbicop-chrome.php installed, identical to repo |  |
 | PASS | tienda/wp-content/mu-plugins/arbicop-shop-cart.php installed, identical to repo |  |
+| PASS | tienda/wp-content/mu-plugins/arbicop-chrome/ installed, identical to repo (header, footer, css, manifest) |  |
 | PASS | GET /tienda/  body ~ TIENDA-STUB uri=/tienda/ |  |
 | PASS | GET /tienda/producto-x/  body ~ TIENDA-STUB uri=/tienda/producto-x/ |  |
 | PASS | GET /tienda/wp-content/uploads/2026/01/product.png  -> 200 |  |
@@ -320,8 +320,22 @@ NOT verified here: the real cPanel run of .cpanel.yml, LiteSpeed, real SMTP, izi
 | Result | Check | Detail |
 |---|---|---|
 | PASS | shopfix block exit 0 |  |
-| PASS | 3 custom files moved (not deleted) out of mu-plugins/ |  |
+| PASS | cart mu-plugin moved (not deleted) out of mu-plugins/ |  |
 | PASS | rest of tienda/ unchanged |  |
+| PASS | chrome mu-plugin file and directory moved (not deleted) out of mu-plugins/ |  |
+
+## h-chrome-kill-switch
+
+| Result | Check | Detail |
+|---|---|---|
+| PASS | deploy exit 0 (re-installs the moved chrome files) |  |
+| PASS | GET /tienda/  body ~ data-arbicop-chrome="header" |  |
+| PASS | chromeoff block exit 0 |  |
+| PASS | kill switch file created |  |
+| PASS | deploy again exit 0 |  |
+| PASS | kill switch survives the deploy; chrome files present |  |
+| PASS | tienda/ byte-identical with kill switch on |  |
+| PASS | GET /tienda/  body !~ data-arbicop-chrome |  |
 
 ## Findings from the simulation (what the PASS rows mean in practice)
 

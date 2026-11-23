@@ -31,7 +31,7 @@ sameas() { if curl -s --max-time 25 "$(U "$1")" | cmp -s - "$2"; then rec PASS "
 seed()   { dx sh /dt/seed.sh "$1" 2>&1 | tail -1; }
 deploy() { du_ bash /dt/cpanel-run.sh > /tmp/deploy.out 2>&1; DEPLOY_RC=$?; sed 's/^/      | /' /tmp/deploy.out | cut -c1-200; }
 block()  { du_ bash /dt/run-block.sh "$1" > "/tmp/block-$1.out" 2>&1; BLOCK_RC=$?; sed 's/^/      | /' "/tmp/block-$1.out" | cut -c1-200; }
-tienda_hash() { dx sh -c "cd $DOC/tienda && find . -type f ! -name arbicop-shared-header.php ! -name arbicop-shared-header.css ! -name arbicop-shop-cart.php | sort | xargs sha256sum | sha256sum | cut -c1-64"; }
+tienda_hash() { dx sh -c "cd $DOC/tienda && find . -type f ! -path './wp-content/mu-plugins/arbicop-chrome/*' ! -name arbicop-chrome.php ! -name arbicop-chrome.off ! -name arbicop-shop-cart.php | sort | xargs sha256sum | sha256sum | cut -c1-64"; }
 state_hash() { dx sh -c "cd $DOC/api && { find storage -type f ! -name .gitignore ! -name .htaccess | sort | xargs -r sha256sum; [ -f config.secret.php ] && sha256sum config.secret.php; } | sha256sum | cut -c1-64"; }
 top() { dx sh -c "cd $DOC && ls -A | sort | tr '\n' ' '"; }
 
@@ -119,10 +119,11 @@ tree_matches_dist() {
 # Shop must be intact: tracked sample files unchanged and the 3 custom files installed identical to the repo
 shop_intact() {
   local before=$1 after
-  after=$(tienda_hash); [ "$before" = "$after" ] && rec PASS "tienda/ untouched byte-for-byte (all files except the 3 custom mu-plugins) sha=${after:0:12}" || rec FAIL "tienda/ untouched" "$before != $after"
-  for f in arbicop-shared-header.php arbicop-shared-header.css arbicop-shop-cart.php; do
+  after=$(tienda_hash); [ "$before" = "$after" ] && rec PASS "tienda/ untouched byte-for-byte (all files except the shop chrome + cart mu-plugins) sha=${after:0:12}" || rec FAIL "tienda/ untouched" "$before != $after"
+  for f in arbicop-chrome.php arbicop-shop-cart.php; do
     dx cmp -s "$DOC/tienda/wp-content/mu-plugins/$f" "/repo-src/tienda/wp-content/mu-plugins/$f"; ok $? "tienda/wp-content/mu-plugins/$f installed, identical to repo"
   done
+  dx diff -r "$DOC/tienda/wp-content/mu-plugins/arbicop-chrome" "/repo-src/tienda/wp-content/mu-plugins/arbicop-chrome" >/dev/null; ok $? "tienda/wp-content/mu-plugins/arbicop-chrome/ installed, identical to repo (header, footer, css, manifest)"
   want_body 'TIENDA-STUB uri=/tienda/' /tienda/
   want_body 'TIENDA-STUB uri=/tienda/producto-x/' /tienda/producto-x/        # shop's own rewrite -> its index.php
   want_code 200 /tienda/wp-content/uploads/2026/01/product.png
@@ -151,7 +152,8 @@ want_code 404 /tienda/
 SC="a2-clean-with-shop-skeleton"
 echo "== $SC"; seed clean-shop; deploy
 ok $DEPLOY_RC "all 4 tasks succeed when tienda/wp-content/mu-plugins/ exists (rc=$DEPLOY_RC)"
-for f in arbicop-shared-header.php arbicop-shared-header.css arbicop-shop-cart.php; do dx cmp -s "$DOC/tienda/wp-content/mu-plugins/$f" "/repo-src/tienda/wp-content/mu-plugins/$f"; ok $? "mu-plugins/$f installed"; done
+for f in arbicop-chrome.php arbicop-shop-cart.php; do dx cmp -s "$DOC/tienda/wp-content/mu-plugins/$f" "/repo-src/tienda/wp-content/mu-plugins/$f"; ok $? "mu-plugins/$f installed"; done
+dx diff -r "$DOC/tienda/wp-content/mu-plugins/arbicop-chrome" "/repo-src/tienda/wp-content/mu-plugins/arbicop-chrome" >/dev/null; ok $? "mu-plugins/arbicop-chrome/ installed (cp -R), identical to repo"
 tree_matches_dist
 dx sh -c "test ! -e $DOC/api/config.secret.php"; ok $? "no config.secret.php was created by the deploy"
 
@@ -283,8 +285,22 @@ want_code 404 /wp-login.php
 SC="g-shop-fix-branch"
 echo "== $SC"
 block shopfix; ok $BLOCK_RC "shopfix block exit 0"
-dx sh -c "test ! -e $DOC/tienda/wp-content/mu-plugins/arbicop-shop-cart.php && ls -d /home/arbicopc/respaldos/mu-plugins-apartados-*/arbicop-shop-cart.php >/dev/null"; ok $? "3 custom files moved (not deleted) out of mu-plugins/"
+dx sh -c "test ! -e $DOC/tienda/wp-content/mu-plugins/arbicop-shop-cart.php && ls -d /home/arbicopc/respaldos/mu-plugins-apartados-*/arbicop-shop-cart.php >/dev/null"; ok $? "cart mu-plugin moved (not deleted) out of mu-plugins/"
 [ "$(tienda_hash)" = "$TH" ]; ok $? "rest of tienda/ unchanged"
+dx sh -c "test ! -e $DOC/tienda/wp-content/mu-plugins/arbicop-chrome.php && test ! -e $DOC/tienda/wp-content/mu-plugins/arbicop-chrome && ls -d /home/arbicopc/respaldos/mu-plugins-apartados-*/arbicop-chrome >/dev/null"; ok $? "chrome mu-plugin file and directory moved (not deleted) out of mu-plugins/"
+
+# ---- (h) kill switch + deploy again: the .off file survives deploys (cp never deletes) and the rest of tienda/ stays byte-identical
+SC="h-chrome-kill-switch"
+echo "== $SC"
+deploy; ok $DEPLOY_RC "deploy exit 0 (re-installs the moved chrome files)"
+want_body 'data-arbicop-chrome="header"' /tienda/
+block chromeoff; ok $BLOCK_RC "chromeoff block exit 0"
+dx sh -c "test -e $DOC/tienda/wp-content/mu-plugins/arbicop-chrome.off"; ok $? "kill switch file created"
+deploy; ok $DEPLOY_RC "deploy again exit 0"
+dx sh -c "test -e $DOC/tienda/wp-content/mu-plugins/arbicop-chrome.off && test -f $DOC/tienda/wp-content/mu-plugins/arbicop-chrome.php"; ok $? "kill switch survives the deploy; chrome files present"
+[ "$(tienda_hash)" = "$TH" ]; ok $? "tienda/ byte-identical with kill switch on"
+not_body 'data-arbicop-chrome' /tienda/     # kill switch on: shop renders without the chrome (stub models the mu-plugin contract)
+dx sh -c "mv $DOC/tienda/wp-content/mu-plugins/arbicop-chrome.off /tmp/arbicop-chrome.off.moved"
 
 # ================================================================================================================
 P=$(awk -F'\t' '$3=="PASS"' "$TSV" | wc -l); F=$(awk -F'\t' '$3=="FAIL"' "$TSV" | wc -l)

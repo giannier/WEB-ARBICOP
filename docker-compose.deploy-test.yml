@@ -27,8 +27,8 @@ services:
       - ./.cpanel.yml:/repo-src/.cpanel.yml:ro
       - ./.gitignore:/repo-src/.gitignore:ro
       - ./DEPLOY.md:/repo-src/DEPLOY.md:ro
-      - ./tienda/wp-content/mu-plugins/arbicop-shared-header.php:/repo-src/tienda/wp-content/mu-plugins/arbicop-shared-header.php:ro
-      - ./tienda/wp-content/mu-plugins/arbicop-shared-header.css:/repo-src/tienda/wp-content/mu-plugins/arbicop-shared-header.css:ro
+      - ./tienda/wp-content/mu-plugins/arbicop-chrome.php:/repo-src/tienda/wp-content/mu-plugins/arbicop-chrome.php:ro
+      - ./tienda/wp-content/mu-plugins/arbicop-chrome:/repo-src/tienda/wp-content/mu-plugins/arbicop-chrome:ro
       - ./tienda/wp-content/mu-plugins/arbicop-shop-cart.php:/repo-src/tienda/wp-content/mu-plugins/arbicop-shop-cart.php:ro
   web-clean:
     <<: *web
@@ -40,8 +40,8 @@ services:
       - ./.cpanel.yml:/repo-src/.cpanel.yml:ro
       - ./.gitignore:/repo-src/.gitignore:ro
       - ./DEPLOY.md:/repo-src/DEPLOY.md:ro
-      - ./tienda/wp-content/mu-plugins/arbicop-shared-header.php:/repo-src/tienda/wp-content/mu-plugins/arbicop-shared-header.php:ro
-      - ./tienda/wp-content/mu-plugins/arbicop-shared-header.css:/repo-src/tienda/wp-content/mu-plugins/arbicop-shared-header.css:ro
+      - ./tienda/wp-content/mu-plugins/arbicop-chrome.php:/repo-src/tienda/wp-content/mu-plugins/arbicop-chrome.php:ro
+      - ./tienda/wp-content/mu-plugins/arbicop-chrome:/repo-src/tienda/wp-content/mu-plugins/arbicop-chrome:ro
       - ./tienda/wp-content/mu-plugins/arbicop-shop-cart.php:/repo-src/tienda/wp-content/mu-plugins/arbicop-shop-cart.php:ro
 
 volumes:

@@ -55,6 +55,14 @@ if [ "$SKIP_TIENDA" = 1 ]; then
 else
   fetch /tienda/
   [ "$CODE" = 200 ] && ! has_php_source && pass "/tienda/ is 200 and its HTML has no <?php" || fail "/tienda/ is 200 and its HTML has no <?php" "http $CODE$(has_php_source && echo ', contains <?php')"
+  # Shop chrome as code (mu-plugin arbicop-chrome): the shop must render the repo header AND footer. If this fails the shop is
+  # still working with its own original header (fail-safe): check that the static deploy shipped /assets and the mu-plugin files
+  # exist, or see DEPLOY.md (kill switch / rollback).
+  if grep -q 'data-arbicop-chrome="header"' "$TMP/body" && grep -q 'data-arbicop-chrome="footer"' "$TMP/body"; then
+    pass "/tienda/ renders the repo header and footer (data-arbicop-chrome)"
+  else
+    fail "/tienda/ renders the repo header and footer (data-arbicop-chrome)" "marker missing: chrome is off (fail-safe), not deployed, or a page cache serves old HTML"
+  fi
 fi
 
 fetch /api/config.php

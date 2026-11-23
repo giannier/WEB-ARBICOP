@@ -96,7 +96,9 @@ RewriteRule . /tienda/index.php [L]
 </IfModule>
 # END WordPress
 HTA
-  echo '<?php echo "TIENDA-STUB uri=" . $_SERVER["REQUEST_URI"];' > tienda/index.php
+  # The stub mimics the chrome mu-plugin contract (marker only when installed and the kill switch file is absent), so the deploy
+  # rehearsal and tools/post-deploy-check.sh can be exercised without a real WordPress.
+  echo '<?php echo "TIENDA-STUB uri=" . $_SERVER["REQUEST_URI"]; $m = __DIR__ . "/wp-content/mu-plugins/"; if (is_file($m . "arbicop-chrome.php") && is_file($m . "arbicop-chrome/manifest.json") && !is_file($m . "arbicop-chrome.off")) echo " <header data-arbicop-chrome=\"header\"></header><footer data-arbicop-chrome=\"footer\"></footer>";' > tienda/index.php
   printf '<?php\n// FAKE credentials (simulation)\ndefine("DB_NAME","fake_shop");define("DB_PASSWORD","fake-not-a-secret");\n' > tienda/wp-config.php
   echo '<?php // wp-toolkit stub' > tienda/wp-content/mu-plugins/wp-toolkit.php
   echo '<?php echo "TIENDA-WOO";' > tienda/wp-content/plugins/woocommerce/woocommerce.php
