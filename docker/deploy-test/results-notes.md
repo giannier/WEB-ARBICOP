@@ -1,0 +1,19 @@
+## Findings from the simulation (what the PASS rows mean in practice)
+
+1. **Stale deploy WITHOUT cutover (b) "works" but leaves the legacy WordPress exposed.** `cp -R dist/.` replaces `.htaccess` (so the old WP rewrites vanish) and `index.html` wins over `index.php` (`DirectoryIndex index.html index.php`), so the new pages render. But, still reachable: `/wp-login.php`, `/xmlrpc.php`, `/index.php` (WordPress home), `/wp-content/plugins/*/*.php` and `/wp-content/uploads/**/*.php`, `/error_log` (plain text, no `.log` extension so the deny rule misses it), and `/beneficios/index.php` still serves `/home/arbicopc/mail/index.html` to bot user agents (cloaking). Conclusion: the cutover (DEPLOY.md step 3) is mandatory, not cosmetic.
+2. **Clean account without a shop (a)**: task 1 copies the whole site, task 2 fails (`cp` cannot create into a missing `tienda/wp-content/mu-plugins/`). This is by design (no `mkdir`); on the real server that directory exists (it holds `wp-toolkit.php`). With the directory present (a2) all 4 tasks pass.
+3. **`cp -R` over an existing deployment does not damage runtime state (d)**: `dist/` ships no `config.secret.php` and only identical placeholder files in `api/storage`; storage data, `counter.dat`, archived PDFs and `config.secret.php` (mode 640) stay byte-identical, the PDF key of a claim made before the redeploy still works and numbering continues.
+4. **Cutover as documented (c)**: leaves only `tienda/`, `.well-known/`, `cgi-bin/`, `wp-content/uploads/` (+ new site); `/tienda/` is byte-identical (all files except the 3 intentionally installed mu-plugins), the ACME file still answers, old `/wp-content/uploads/` images still answer (200) while PHP in uploads is denied (403), the legacy WordPress URLs are 404.
+5. **Rollback as documented (e)**: the legacy site answers again (WP rewrite, wp-admin, old beneficios), every original legacy file is byte-identical (`sha256sum -c` against the seed fingerprint), `api/storage` + `config.secret.php` are untouched, and re-applying cutover + deploy (f) continues the claim numbering.
+6. `.gitignore` does not drop anything from `dist/` (469 files tracked == 469 on disk in the clone used by the simulation).
+
+## Flaws found while writing the procedure and how they were handled
+
+- **cPanel PHP handler block lives in the legacy root `.htaccess`** (`AddHandler application/x-httpd-ea-php82 ...`); the new `.htaccess` (from `dist/`) does not carry it, and every deploy overwrites `.htaccess`. Mitigation in DEPLOY.md: step 4.2 re-appends the block from the backup, step 4.3 asks to check MultiPHP Manager after each deploy; the lasting fix (ship the block in `src/public/.htaccess`) is left as a decision because it cannot be validated here (the simulation substitutes `application/x-httpd-php`, the real handler name is not understood by this Apache).
+- **Legacy `beneficios/` holds two Google Search Console verification files** (`google5d33...html`, `google83cb...html`): moving the whole folder aside would break that verification. DEPLOY.md restores both (inert) files after the deploy (`postdeploy` block, tested).
+- **Old image URLs**: `wp-content/uploads/` is deliberately left in place with PHP execution denied instead of shipping 301 rules.
+- The first simulation draft cloned the repo as root (permission error) and the PDF/claim checks tripped the "repeated content" rate-limit rule; both were fixed in the harness, not in DEPLOY.md/.cpanel.yml.
+
+## Not verified by this simulation
+
+Real cPanel execution of `.cpanel.yml` (shell, cwd, failure semantics), LiteSpeed (this is Apache 2.4), real PHP handler / MultiPHP, real SMTP and mailbox delivery, izipay in live mode, the real WordPress/WooCommerce (stubs with the real `.htaccess` content), the SSH deploy-key clone from GitHub, real HTTPS/AutoSSL.

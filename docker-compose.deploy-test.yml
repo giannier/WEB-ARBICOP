@@ -1,0 +1,49 @@
+# cPanel Git deploy + cutover + rollback simulation (ARBICOP). Independent of docker-compose.yml and its volumes/DB.
+# The container IS the "cPanel account": user arbicopc, docroot /home/arbicopc/public_html, repo clone at
+# /home/arbicopc/repos/WEB-ARBICOP, backups in /home/arbicopc/respaldos, so .cpanel.yml and DEPLOY.md blocks run UNMODIFIED.
+#
+#   docker compose -f docker-compose.deploy-test.yml -p arbicop-deploytest up -d --build
+#   bash docker/deploy-test/run.sh            # runs every scenario, writes docker/deploy-test/results.md
+#
+#   web-stale -> http://localhost:8090   (docroot seeded with the legacy WordPress root + /tienda stub)
+#   web-clean -> http://localhost:8092   (empty docroot; 8091 is taken by another project's deploy-test)
+# Mail is dry-run (LR_MAIL_DRY_RUN=1): no SMTP is ever contacted. Docroots live ONLY in the named volumes below.
+name: arbicop-deploytest
+
+x-web: &web
+  build: ./docker/deploy-test
+  environment:
+    LR_MAIL_DRY_RUN: "1"
+    LR_TEST_LIMITS: '{"interval_seconds":0,"per_day":1000,"global_per_hour":1000,"global_per_day":1000,"min_fill_seconds":2}'
+
+services:
+  web-stale:
+    <<: *web
+    ports: ["8090:80"]
+    volumes:
+      - dt_stale_home:/home/arbicopc
+      - ./docker/deploy-test:/dt:ro
+      - ./dist:/repo-src/dist:ro
+      - ./.cpanel.yml:/repo-src/.cpanel.yml:ro
+      - ./.gitignore:/repo-src/.gitignore:ro
+      - ./DEPLOY.md:/repo-src/DEPLOY.md:ro
+      - ./tienda/wp-content/mu-plugins/arbicop-shared-header.php:/repo-src/tienda/wp-content/mu-plugins/arbicop-shared-header.php:ro
+      - ./tienda/wp-content/mu-plugins/arbicop-shared-header.css:/repo-src/tienda/wp-content/mu-plugins/arbicop-shared-header.css:ro
+      - ./tienda/wp-content/mu-plugins/arbicop-shop-cart.php:/repo-src/tienda/wp-content/mu-plugins/arbicop-shop-cart.php:ro
+  web-clean:
+    <<: *web
+    ports: ["8092:80"]
+    volumes:
+      - dt_clean_home:/home/arbicopc
+      - ./docker/deploy-test:/dt:ro
+      - ./dist:/repo-src/dist:ro
+      - ./.cpanel.yml:/repo-src/.cpanel.yml:ro
+      - ./.gitignore:/repo-src/.gitignore:ro
+      - ./DEPLOY.md:/repo-src/DEPLOY.md:ro
+      - ./tienda/wp-content/mu-plugins/arbicop-shared-header.php:/repo-src/tienda/wp-content/mu-plugins/arbicop-shared-header.php:ro
+      - ./tienda/wp-content/mu-plugins/arbicop-shared-header.css:/repo-src/tienda/wp-content/mu-plugins/arbicop-shared-header.css:ro
+      - ./tienda/wp-content/mu-plugins/arbicop-shop-cart.php:/repo-src/tienda/wp-content/mu-plugins/arbicop-shop-cart.php:ro
+
+volumes:
+  dt_stale_home:
+  dt_clean_home:

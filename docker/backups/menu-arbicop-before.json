@@ -1,0 +1,161 @@
+{
+    "menu": "Menu Arbicop",
+    "slug": "menu-arbicop",
+    "locations": [],
+    "items": [
+        {
+            "db_id": 30,
+            "title": "Inicio",
+            "url": "/",
+            "type": "custom",
+            "object": "custom",
+            "object_id": "30",
+            "parent": 0,
+            "order": 1,
+            "target": ""
+        },
+        {
+            "db_id": 29,
+            "title": "Nosotros",
+            "url": "/nosotros/",
+            "type": "custom",
+            "object": "custom",
+            "object_id": "29",
+            "parent": 0,
+            "order": 2,
+            "target": ""
+        },
+        {
+            "db_id": 31,
+            "title": "Formaciones",
+            "url": "#",
+            "type": "custom",
+            "object": "custom",
+            "object_id": "31",
+            "parent": 0,
+            "order": 3,
+            "target": ""
+        },
+        {
+            "db_id": 36,
+            "title": "Peritaje",
+            "url": "/peritaje/",
+            "type": "custom",
+            "object": "custom",
+            "object_id": "36",
+            "parent": 31,
+            "order": 4,
+            "target": ""
+        },
+        {
+            "db_id": 35,
+            "title": "Arbitraje",
+            "url": "/arbitraje/",
+            "type": "custom",
+            "object": "custom",
+            "object_id": "35",
+            "parent": 31,
+            "order": 5,
+            "target": ""
+        },
+        {
+            "db_id": 34,
+            "title": "Conciliación",
+            "url": "/conciliacion/",
+            "type": "custom",
+            "object": "custom",
+            "object_id": "34",
+            "parent": 31,
+            "order": 6,
+            "target": ""
+        },
+        {
+            "db_id": 33,
+            "title": "Tasación",
+            "url": "/tasacion/",
+            "type": "custom",
+            "object": "custom",
+            "object_id": "33",
+            "parent": 31,
+            "order": 7,
+            "target": ""
+        },
+        {
+            "db_id": 32,
+            "title": "Corretaje",
+            "url": "/corretaje/",
+            "type": "custom",
+            "object": "custom",
+            "object_id": "32",
+            "parent": 31,
+            "order": 8,
+            "target": ""
+        },
+        {
+            "db_id": 37,
+            "title": "Beneficios",
+            "url": "/beneficios/",
+            "type": "custom",
+            "object": "custom",
+            "object_id": "37",
+            "parent": 0,
+            "order": 9,
+            "target": ""
+        },
+        {
+            "db_id": 531,
+            "title": "Tienda",
+            "url": "/tienda/",
+            "type": "custom",
+            "object": "custom",
+            "object_id": "531",
+            "parent": 0,
+            "order": 10,
+            "target": ""
+        },
+        {
+            "db_id": 532,
+            "title": "Campus Virtual",
+            "url": "https://aula.arbicop.com/",
+            "type": "custom",
+            "object": "custom",
+            "object_id": "532",
+            "parent": 0,
+            "order": 11,
+            "target": "_blank"
+        },
+        {
+            "db_id": 533,
+            "title": "Libro de Reclamaciones",
+            "url": "/libro-de-reclamaciones-2/",
+            "type": "custom",
+            "object": "custom",
+            "object_id": "533",
+            "parent": 0,
+            "order": 12,
+            "target": ""
+        },
+        {
+            "db_id": 40,
+            "title": "Contacto",
+            "url": "/contacto/",
+            "type": "custom",
+            "object": "custom",
+            "object_id": "40",
+            "parent": 0,
+            "order": 13,
+            "target": ""
+        },
+        {
+            "db_id": 534,
+            "title": "Intranet",
+            "url": "https://rrhh.arbicop.com/",
+            "type": "custom",
+            "object": "custom",
+            "object_id": "534",
+            "parent": 0,
+            "order": 14,
+            "target": "_blank"
+        }
+    ]
+}

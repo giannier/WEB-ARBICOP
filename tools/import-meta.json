@@ -1,0 +1,50 @@
+{
+  "home": {
+    "title": "ARBICOP – Instituto de Formación en Peritaje, Arbitraje, Conciliación, Tasación y Corretaje",
+    "description": "Formación especializada de alto nivel en peritaje, arbitraje, conciliación, tasación y corretaje, con docentes en ejercicio y enfoque práctico. Sedes en Lima, Chiclayo y Chachapoyas."
+  },
+  "nosotros/": {
+    "title": "Nosotros – ARBICOP Instituto de Formación Especializado",
+    "description": "Conoce la misión, la visión y los valores de ARBICOP, una institución comprometida con la excelencia académica y la formación de especialistas en áreas técnicas y legales de alta demanda.",
+    "h1": "Somos ARBICOP"
+  },
+  "peritaje/": {
+    "title": "Formación en Peritaje – ARBICOP",
+    "description": "Formación en peritaje para intervenir como auxiliar de la Justicia: análisis técnico pericial, informes periciales y sustentación en procesos reales judiciales, administrativos y privados.",
+    "h1": "Peritaje"
+  },
+  "arbitraje/": {
+    "title": "Formación en Arbitraje – ARBICOP",
+    "description": "Formación en arbitraje: domina el proceso arbitral desde el convenio hasta el laudo, argumenta con criterio jurídico y analiza controversias contractuales con práctica aplicada.",
+    "h1": "Arbitraje"
+  },
+  "conciliacion/": {
+    "title": "Formación en Conciliación – ARBICOP",
+    "description": "Formación en conciliación basada en ética, neutralidad y confidencialidad: gestión de conflictos, escucha activa y simulación de audiencias conciliatorias reales.",
+    "h1": "Conciliación"
+  },
+  "tasacion/": {
+    "title": "Formación en Tasación – ARBICOP",
+    "description": "Formación en tasación de bienes muebles e inmuebles: métodos de valoración (comparativo, costos, ingresos), análisis del mercado inmobiliario y elaboración de informes técnicos.",
+    "h1": "Tasación"
+  },
+  "corretaje/": {
+    "title": "Formación en Corretaje – ARBICOP",
+    "description": "Formación en corretaje inmobiliario y comercial: intermediación eficiente, técnicas de negociación y cierre, gestión de clientes y análisis del mercado, con casos reales.",
+    "h1": "Corretaje"
+  },
+  "beneficios/": {
+    "title": "Beneficios de estudiar en ARBICOP",
+    "description": "Calidad académica, enfoque práctico y acompañamiento constante: especializaciones de alta demanda, aprendizaje con expertos, certificación y oportunidades laborales.",
+    "h1": "Beneficios"
+  },
+  "contacto/": {
+    "title": "Contacto – ARBICOP Instituto de Formación",
+    "description": "Solicita información sobre nuestras formaciones en peritaje, arbitraje, conciliación, tasación y corretaje. Escríbenos por WhatsApp al +51 943 704 298 o a comercial@arbicop.com.",
+    "h1": "Contacto"
+  },
+  "libro-de-reclamaciones/": {
+    "title": "Libro de Reclamaciones – ARBICOP",
+    "description": "Libro de Reclamaciones virtual de ARBICOP Instituto de Formación: registra tu reclamo o queja conforme al Código de Protección y Defensa del Consumidor."
+  }
+}

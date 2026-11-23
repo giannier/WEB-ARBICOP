@@ -1,0 +1,9 @@
+# Serves dist/ with production-like Apache (honours .htaccess) on http://localhost:8084. Independent of docker-compose.yml.
+#   docker compose -f docker-compose.static.yml -p arbicop-static up -d --build
+name: arbicop-static
+services:
+  static:
+    build: ./docker/static
+    ports: ["8084:80"]
+    volumes:
+      - ./dist:/var/www/html:ro

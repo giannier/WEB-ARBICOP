@@ -1,0 +1,19 @@
+# cPanel > Git Version Control > Manage > Pull or Deploy > "Deploy HEAD Commit".
+# Repo is cloned OUTSIDE the docroot: /home/arbicopc/repos/WEB-ARBICOP ; docroot: /home/arbicopc/public_html
+#
+# Rules this file follows (see DEPLOY.md):
+#  - Only `cp`. Nothing is ever deleted, moved or synced, so server-only files survive every deploy:
+#    api/config.secret.php, api/storage/** runtime data, tienda/ (core, plugins, uploads, wp-config.php), .well-known/.
+#  - Absolute paths inline in every command. No exported variables: persistence of `export` across tasks is not guaranteed.
+#  - No mkdir: /tienda/wp-content/mu-plugins/ already exists on the live shop (it holds wp-toolkit.php). If it ever
+#    did not, `cp` would fail and cPanel would flag the deploy as failed (the static site above is already copied).
+#  - `cp -R dist/. docroot/` overwrites same-named files only. dist/ ships no config.secret.php and only the
+#    placeholder files of api/storage (.gitignore/.htaccess), whose content is identical to what is already there.
+deployment:
+  tasks:
+    # 1) Static site: dist/ (committed build output) on top of the docroot
+    - /bin/cp -R /home/arbicopc/repos/WEB-ARBICOP/dist/. /home/arbicopc/public_html/
+    # 2) Shop custom code ONLY (3 files); the rest of /tienda is never touched
+    - /bin/cp -f /home/arbicopc/repos/WEB-ARBICOP/tienda/wp-content/mu-plugins/arbicop-shared-header.php /home/arbicopc/public_html/tienda/wp-content/mu-plugins/
+    - /bin/cp -f /home/arbicopc/repos/WEB-ARBICOP/tienda/wp-content/mu-plugins/arbicop-shared-header.css /home/arbicopc/public_html/tienda/wp-content/mu-plugins/
+    - /bin/cp -f /home/arbicopc/repos/WEB-ARBICOP/tienda/wp-content/mu-plugins/arbicop-shop-cart.php /home/arbicopc/public_html/tienda/wp-content/mu-plugins/

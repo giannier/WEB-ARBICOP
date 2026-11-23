@@ -1,0 +1,45 @@
+# Local-only environment. Production files are never modified.
+# One WordPress container mirrors production: root WP at / and the shop (WooCommerce) at /tienda,
+# each with its own database. Apache serves /tienda as a real subfolder (same as cPanel).
+# Host port 8080 is commonly taken by other local projects, so this project uses 8082 / 3308 / 8083.
+services:
+  db:
+    image: mariadb:lts
+    environment:
+      MARIADB_ROOT_PASSWORD: root
+      MARIADB_USER: wp
+      MARIADB_PASSWORD: wp
+    command: ["--max-allowed-packet=256M", "--innodb-buffer-pool-size=512M"]
+    ports: ["3308:3306"]
+    volumes:
+      - dbdata:/var/lib/mysql
+      - ./docker/initdb:/docker-entrypoint-initdb.d:ro
+  wordpress:
+    image: wordpress:php8.1-apache
+    depends_on: [db]
+    ports: ["8082:80"]
+    volumes:
+      - wpfiles:/var/www/html
+      - ./docker/wp-config.root.php:/var/www/html/wp-config.php
+      - ./docker/wp-config.tienda.php:/var/www/html/tienda/wp-config.php
+      - ./docker/local.ini:/usr/local/etc/php/conf.d/zz-local.ini:ro
+  wpcli:
+    image: wordpress:cli-php8.1
+    profiles: [tools]
+    user: "33:33"
+    depends_on: [db]
+    volumes:
+      - wpfiles:/var/www/html
+      - ./docker/wp-config.root.php:/var/www/html/wp-config.php
+      - ./docker/wp-config.tienda.php:/var/www/html/tienda/wp-config.php
+      - ./docker/local.ini:/usr/local/etc/php/conf.d/zz-local.ini:ro
+    entrypoint: ["wp", "--allow-root"]
+  phpmyadmin:
+    image: phpmyadmin:5
+    profiles: [tools]
+    environment: { PMA_HOST: db, PMA_USER: root, PMA_PASSWORD: root, UPLOAD_LIMIT: 512M }
+    ports: ["8083:80"]
+    depends_on: [db]
+volumes:
+  dbdata:
+  wpfiles:
