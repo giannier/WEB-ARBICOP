@@ -1,0 +1,329 @@
+<?php
+/**
+ * Libro de Reclamaciones endpoint.
+ *
+ * Checks run from cheapest to most expensive: illegitimate submissions are
+ * discarded first; the PDF and the e-mail (costly) come last.
+ *
+ * Messages sent to the browser are deliberately generic. Technical detail
+ * goes to the server log: telling an attacker which check failed hands them
+ * the map.
+ */
+
+declare(strict_types=1);
+
+ini_set('display_errors', '0');
+ini_set('log_errors', '1');
+error_reporting(E_ALL);
+
+$config = require __DIR__ . '/config.php';
+date_default_timezone_set($config['timezone']);
+ini_set('error_log', $config['storage'] . '/log/php-error.log');
+
+require_once __DIR__ . '/src/Security.php';
+require_once __DIR__ . '/src/Captcha.php';
+require_once __DIR__ . '/src/Validator.php';
+require_once __DIR__ . '/src/ClaimNumber.php';
+require_once __DIR__ . '/src/ClaimPdf.php';
+require_once __DIR__ . '/src/Notifier.php';
+require_once __DIR__ . '/src/Pendientes.php';
+
+header('Content-Type: application/json; charset=utf-8');
+header('X-Content-Type-Options: nosniff');
+header('Cache-Control: no-store');
+header('Referrer-Policy: same-origin');
+header('X-Frame-Options: DENY');
+
+function respond(int $code, array $data): never
+{
+    http_response_code($code);
+    echo json_encode($data, JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+function note(array $config, string $level, string $message): void
+{
+    $dir = $config['storage'] . '/log';
+    if (!is_dir($dir)) {
+        mkdir($dir, 0750, true);
+    }
+    @file_put_contents($dir . '/claims.log', sprintf("[%s] %-7s %s\n", date('c'), $level, $message), FILE_APPEND | LOCK_EX);
+}
+
+/**
+ * A failure AFTER Security::reserve(): nothing was registered, so free the per-IP slot, the daily count and the
+ * repeated-content fingerprint before answering 500. Otherwise the user's retry would get a 429 for a claim that
+ * does not exist. On success the reservation is kept.
+ */
+function failAfterReserve(Security $security, string $message): never
+{
+    global $claimIssuer;
+    if ($claimIssuer instanceof ClaimNumber) {
+        $claimIssuer->abort(); // the claim number goes back to the pool: no gap
+    }
+    $security->release();
+    respond(500, ['ok' => false, 'message' => $message]);
+}
+
+$security = new Security($config);
+$ip = $security->ip();
+
+// 1. Method and size -------------------------------------------------------
+if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+    header('Allow: POST');
+    respond(405, ['ok' => false, 'message' => 'Método no permitido.']);
+}
+if ((int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > 65536) {
+    note($config, 'BLOCK', "oversized body from $ip");
+    respond(413, ['ok' => false, 'message' => 'La solicitud es demasiado grande.']);
+}
+
+// 2. Same origin (Origin, falling back to Referer) --------------------------
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+if ($origin === '') {
+    $origin = $_SERVER['HTTP_REFERER'] ?? '';
+}
+if ($origin === '') {
+    note($config, 'BLOCK', "no origin/referer from $ip");
+    respond(403, ['ok' => false, 'message' => 'Solicitud no autorizada.']);
+}
+// parse_url drops the port while HTTP_HOST keeps it when non-standard.
+$originHost = parse_url($origin, PHP_URL_HOST) ?: '';
+if ($originPort = parse_url($origin, PHP_URL_PORT)) {
+    $originHost .= ':' . $originPort;
+}
+$ownHost = $_SERVER['HTTP_HOST'] ?? '';
+$accepted = [$ownHost, 'www.' . $ownHost];
+if (str_starts_with(strtolower($ownHost), 'www.')) {
+    $accepted[] = substr($ownHost, 4);
+}
+$match = false;
+foreach ($accepted as $candidate) {
+    if ($candidate !== '' && strcasecmp($originHost, $candidate) === 0) {
+        $match = true;
+        break;
+    }
+}
+if (!$match) {
+    note($config, 'BLOCK', "cross origin '$origin' from $ip");
+    respond(403, ['ok' => false, 'message' => 'Solicitud no autorizada.']);
+}
+
+// 3. Honeypot ---------------------------------------------------------------
+if (!$security->honeypotClean($_POST)) {
+    note($config, 'BOT', "honeypot filled from $ip");
+    // Answer as if it worked: a bot that sees the rejection adapts and returns.
+    respond(200, ['ok' => true, 'claim_number' => 'LR-0000-0000']);
+}
+
+// 4. Session token and fill time --------------------------------------------
+$reason = null;
+if (!$security->tokenValid((string) ($_POST['token'] ?? ''), $reason)) {
+    note($config, 'BLOCK', "invalid token ($reason) from $ip");
+    if ($reason === 'token_expired') {
+        respond(419, ['ok' => false, 'message' => 'El formulario expiró. Recarga la página e inténtalo de nuevo.']);
+    }
+    respond(403, ['ok' => false, 'message' => 'No pudimos validar el formulario. Recarga la página e inténtalo de nuevo.']);
+}
+
+// 5. Field validation -------------------------------------------------------
+$validator = new Validator();
+if (!$validator->validate($_POST)) {
+    respond(422, ['ok' => false, 'message' => 'Revisa los campos marcados.', 'errors' => $validator->errors()]);
+}
+$data = $validator->data();
+
+// 6. hCaptcha (only when keys are configured; fail-closed once enabled) -----
+$captcha = new Captcha($config);
+if ($captcha->enabled() && !$captcha->verify((string) ($_POST['h-captcha-response'] ?? ''), $ip, $reason)) {
+    note($config, 'BLOCK', "captcha failed ($reason) from $ip");
+    respond(400, ['ok' => false, 'message' => 'No pudimos verificar que eres una persona. Marca la casilla de verificación e inténtalo de nuevo.']);
+}
+
+// 7. Per-IP / global limits and repeated content (atomic reservation) --------
+$contentKey = mb_strtolower($data['email'] . '|' . $data['name'] . '|' . $data['detail'] . '|' . $data['request']);
+if (!$security->reserve($ip, $contentKey, $reason)) {
+    note($config, 'LIMIT', "limit '$reason' reached by $ip");
+    respond(429, [
+        'ok' => false,
+        'message' => 'Has registrado varios reclamos en poco tiempo. Inténtalo más tarde o escríbenos a '
+            . $config['smtp']['internal_bcc'] . '.',
+    ]);
+}
+
+// 8. Claim number -----------------------------------------------------------
+// Reserved here, committed only after the sheet is archived (step 10); any failure in between gives it back.
+$claimIssuer = null;
+try {
+    $claimIssuer = new ClaimNumber($config['storage']);
+    $claimNumber = $claimIssuer->reserve();
+} catch (Throwable $e) {
+    note($config, 'ERROR', 'claim number: ' . $e->getMessage());
+    failAfterReserve($security, 'No pudimos registrar el reclamo. Inténtalo en unos minutos.');
+}
+
+$months = ['', 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+           'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+$sheet = $data + [
+    'claim_number' => $claimNumber,
+    'date_iso'     => date('c'),
+    'date_long'    => sprintf('%s de %s de %s, %s', date('j'), $months[(int) date('n')], date('Y'), date('H:i')),
+    // Short code so the consumer can quote the sheet without exposing data.
+    'verification' => strtoupper(substr(hash('sha256', $claimNumber . $data['email'] . date('c')), 0, 10)),
+];
+
+// 9. PDF (audited to one page) ----------------------------------------------
+try {
+    if (in_array('pdf', $config['test_fail'], true)) {
+        throw new RuntimeException('injected pdf failure (test mode)');
+    }
+    $audit = null;
+    $pdf = ClaimPdf::generate($config['provider'], $sheet, $config['response_business_days'], $audit);
+    if (($audit['pages'] ?? 0) !== 1) {
+        note($config, 'WARN', sprintf('%s spans %d pages', $claimNumber, $audit['pages']));
+    }
+    if (!empty($audit['trimmed'])) {
+        note($config, 'WARN', $claimNumber . ' text trimmed to fit one page');
+    }
+} catch (Throwable $e) {
+    note($config, 'ERROR', $claimNumber . ' pdf failed, number returned to the pool: ' . $e->getMessage());
+    failAfterReserve($security, 'No pudimos generar la constancia. Inténtalo en unos minutos.');
+}
+
+// 10. Archive BEFORE sending: if SMTP fails the claim is not lost (Art. 12: 2 years)
+// Exclusive-create: an existing sheet is never overwritten. If the archive cannot
+// be written the claim is NOT confirmed, nothing is e-mailed and the token is kept
+// so the user can retry.
+function writeNew(string $path, string $content): bool
+{
+    $fp = @fopen($path, 'x');
+    if ($fp === false) {
+        return false;
+    }
+    $ok = flock($fp, LOCK_EX)
+        && fwrite($fp, $content) === strlen($content)
+        && fflush($fp);
+    fclose($fp);
+    if (!$ok) {
+        @unlink($path);
+    }
+    return $ok;
+}
+
+/** Atomic replace (temp file in the same directory + rename). */
+function replaceFile(string $path, string $content): bool
+{
+    $tmp = $path . '.tmp' . getmypid();
+    if (file_put_contents($tmp, $content, LOCK_EX) !== strlen($content) || !rename($tmp, $path)) {
+        @unlink($tmp);
+        return false;
+    }
+    return true;
+}
+
+function unarchivable(array $config, Security $security, string $claimNumber, string $why): never
+{
+    note($config, 'ERROR', $claimNumber . ' NOT archived (' . $why . '); number returned to the pool, no e-mail sent, claim not confirmed');
+    failAfterReserve($security, 'No pudimos registrar el reclamo. Inténtalo en unos minutos.');
+}
+
+if (in_array('archive', $config['test_fail'], true)) {
+    unarchivable($config, $security, $claimNumber, 'injected archive failure (test mode)');
+}
+$dir = $config['storage'] . '/hojas/' . date('Y');
+if (!is_dir($dir) && !mkdir($dir, 0750, true) && !is_dir($dir)) {
+    unarchivable($config, $security, $claimNumber, 'cannot create archive directory');
+}
+$pdfPath = $dir . '/' . $claimNumber . '.pdf';
+$jsonPath = $dir . '/' . $claimNumber . '.json';
+$record = $sheet + ['ip_hash' => $security->ipFingerprint($ip)];
+$encode = fn(array $r) => json_encode($r, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+$json = $encode($record);
+if ($json === false) {
+    unarchivable($config, $security, $claimNumber, 'cannot encode sheet');
+}
+if (!writeNew($pdfPath, $pdf)) {
+    unarchivable($config, $security, $claimNumber, 'cannot write PDF (unwritable or already exists)');
+}
+if (!writeNew($jsonPath, $json)) {
+    @unlink($pdfPath);
+    unarchivable($config, $security, $claimNumber, 'cannot write JSON (unwritable or already exists)');
+}
+try {
+    $claimIssuer->commit(); // sheet archived: now the number is really consumed (also releases the counter lock)
+} catch (Throwable $e) {
+    // The archived sheet already holds the number and ClaimNumber::reserve() never goes below the highest archived one.
+    note($config, 'ERROR', $claimNumber . ' counter commit failed (sheet archived, numbering self-heals): ' . $e->getMessage());
+    $claimIssuer->abort();
+}
+$security->consumeToken();
+
+// 11. Send: company first, consumer second, independently ---------------------
+$notifier = new Notifier($config);
+$notifications = [];
+foreach (['company' => 'sendCompany', 'consumer' => 'sendConsumer'] as $who => $method) {
+    $entry = ['at' => date('c')];
+    if (!$notifier->configured()) {
+        $entry['state'] = 'skipped';
+        $entry['error_class'] = 'SmtpNotConfigured';
+        note($config, 'ERROR', "$claimNumber $who e-mail NOT sent: SMTP password missing (config.secret.php)");
+    } else {
+        try {
+            if (in_array('smtp-' . $who, $config['test_fail'], true)) {
+                throw new RuntimeException('injected smtp failure (test mode)');
+            }
+            $result = $notifier->$method($sheet, $pdf);
+            if ($notifier->dryRun()) {
+                $entry['state'] = 'dry_run';
+                note($config, 'OK', "$claimNumber $who DRY-RUN e-mail written to " . basename($result));
+            } else {
+                $entry['state'] = 'sent';
+                note($config, 'OK', "$claimNumber $who e-mail sent");
+            }
+        } catch (Throwable $e) {
+            $entry['state'] = 'failed';
+            $entry['error_class'] = get_class($e->getPrevious() ?? $e); // class only: no server detail or secrets
+            note($config, 'ERROR', "$claimNumber $who send failed: " . $e->getMessage());
+        }
+    }
+    $notifications[$who] = $entry;
+}
+
+// Persist delivery state in the archived JSON (atomic rewrite).
+if (!replaceFile($jsonPath, (string) $encode($record + ['notifications' => $notifications]))) {
+    note($config, 'ERROR', $claimNumber . ' could not record delivery state in the archive');
+}
+
+// Any undelivered message (company or consumer) leaves a marker: one `ls storage/pendientes` or
+// `php api/tools/pendientes.php` finds it, and `--resend` delivers it later from the archived sheet.
+$missing = Pendientes::missing($notifications);
+if ($missing !== []) {
+    if (!Pendientes::sync($config['storage'], $claimNumber, $notifications)) {
+        note($config, 'ERROR', $claimNumber . ' could not write the pending marker');
+    } else {
+        note($config, 'PENDING', $claimNumber . ' not delivered: ' . implode('+', $missing) . '; marker in storage/pendientes/');
+    }
+}
+
+// The claim is registered even if the e-mail fails; the failure is in the log and in storage/pendientes.
+$sent = $notifications['consumer']['state'] === 'sent';
+$alt = $config['provider']['contact_email'] . ' o por WhatsApp al ' . $config['provider']['phone'];
+if (!Pendientes::delivered($notifications['company'])) {
+    // The company copy is pending: reassure the consumer and offer a direct channel; no internals are exposed.
+    $message = 'Tu reclamo quedó registrado con el número ' . $claimNumber . ' y su constancia está guardada. '
+        . 'Guarda este número y descarga tu constancia desde esta página. Si necesitas confirmación, '
+        . 'escríbenos a ' . $alt . '.';
+} elseif (!$sent) {
+    $message = 'Tu reclamo quedó registrado con el número ' . $claimNumber
+        . '. No pudimos enviarte el correo en este momento; guarda este número como constancia.';
+} else {
+    $message = 'Tu reclamo quedó registrado. Te enviamos la constancia en PDF a tu correo.';
+}
+respond(200, [
+    'ok'           => true,
+    'claim_number' => $claimNumber,
+    'sent'         => $sent,
+    // Same-origin link to the archived PDF (hoja.php); the key makes it unguessable.
+    'download_url' => '/api/hoja.php?n=' . rawurlencode($claimNumber) . '&k=' . $security->downloadKey($claimNumber),
+    'message'      => $message,
+]);

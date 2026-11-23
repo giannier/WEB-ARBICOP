@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /tienda/wp-admin/
+Allow: /tienda/wp-admin/admin-ajax.php
+Disallow: /tienda/cart/
+Disallow: /tienda/checkout/
+Disallow: /tienda/my-account/
+
+Sitemap: https://arbicop.com/sitemap.xml

@@ -1,0 +1,4 @@
+/* Site overrides, loaded after the Elementor kit. */
+
+/* The page title is an <h1> for SEO but keeps the look of the kit's h2 (same specificity as the kit rules, so widget styles still win). */
+.elementor-kit-45 h1:where(.h1-as-h2){color:var( --e-global-color-accent );font-family:var( --e-global-typography-4c7c81b-font-family ), Sans-serif;font-size:var( --e-global-typography-4c7c81b-font-size );font-weight:var( --e-global-typography-4c7c81b-font-weight );line-height:var( --e-global-typography-4c7c81b-line-height );}
