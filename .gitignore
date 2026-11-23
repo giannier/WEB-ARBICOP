@@ -1,0 +1,69 @@
+# ARBICOP repo layout: static site (src/ -> dist/, dist/ committed on purpose: cPanel does not run npm),
+# local Docker env, tooling, and the shop's custom code only. Everything else at the root is the LEGACY WordPress
+# install (kept on disk until the cutover, never tracked).
+
+# --- root: ignore everything, then allow-list what belongs to the repo ---
+/*
+!/.gitignore
+!/.editorconfig
+!/.cpanel.yml
+!/README.md
+!/DEPLOY.md
+!/package.json
+!/package-lock.json
+!/build.mjs
+!/src/
+!/dist/
+!/tools/
+!/docs/
+!/docker/
+!/docker-compose.yml
+!/docker-compose.static.yml
+!/docker-compose.libro-test.yml
+!/docker-compose.deploy-test.yml
+!/tienda/
+
+# --- secrets / runtime data (never commit) ---
+config.secret.php
+**/api/config.secret.php
+**/api/storage/**
+!**/api/storage/
+!**/api/storage/.gitignore
+!**/api/storage/.htaccess
+!**/api/storage/*/
+!**/api/storage/*/.gitignore
+!**/api/storage/*/.gitkeep
+docker/wp-config.*.php
+docker/screenshots/*
+!docker/screenshots/static-diff.md
+docker/backups/*.sql
+wp-config.php
+.env
+.env.*
+
+# --- shop (/tienda, separate WordPress + WooCommerce): track custom code only ---
+# Active theme is the stock hello-elementor, so the (inactive) child theme is NOT tracked.
+/tienda/*
+!/tienda/wp-content/
+/tienda/wp-content/*
+!/tienda/wp-content/mu-plugins/
+/tienda/wp-content/mu-plugins/*
+!/tienda/wp-content/mu-plugins/arbicop-shared-header.php
+!/tienda/wp-content/mu-plugins/arbicop-shared-header.css
+!/tienda/wp-content/mu-plugins/arbicop-shop-cart.php
+
+# --- backups / dumps / logs ---
+*.sql
+*.zip
+*.tgz
+*.log
+error_log
+php_errorlog
+debug.log
+
+# --- tooling / OS / editors ---
+node_modules/
+.atl/
+.DS_Store
+Thumbs.db
+desktop.ini

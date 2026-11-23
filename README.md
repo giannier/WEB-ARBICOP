@@ -1,0 +1,137 @@
+# ARBICOP static site
+
+Static clone of the Elementor render of https://arbicop.com. The WooCommerce shop (`/tienda/`) stays a separate
+WordPress install and is not part of `src/`. Zero npm dependencies (Node >= 18; the tooling under `tools/` that drives
+Chrome needs Node >= 22 and a local Chrome).
+
+## Commands
+
+```bash
+npm run build     # src/ -> dist/
+npm run dev       # build + watch + local server with live reload (http://localhost:3000)
+npm run watch     # rebuild on save, no server
+npm run check     # broken local refs, WordPress leftovers, external hosts (run after build)
+npm run compare   # pixel diff vs the local WordPress (needs both servers, see below)
+```
+
+`dist/` is committed on purpose: cPanel does not run npm. Flow: edit `src/` -> `npm run build` -> commit `src/` + `dist/`.
+
+## Layout
+
+```
+src/site.json            global values ({{site.name}}, {{site.whatsapp}}, {{site.url}} ...)
+src/layouts/base.html    <head> (SEO, Open Graph, JSON-LD), body shell, scripts
+src/layouts/header.html  single header (top bar, logo, menu); active menu item is set at build time
+src/layouts/footer.html  single footer
+src/layouts/head-*.html, scripts-*.html   Elementor CSS/JS shared by every page (common prefix/suffix)
+src/pages/*.html         one page = front matter (title, description, path, body_class, ...) + Elementor markup
+                         + `<!-- @slot head -->` (page CSS) and `<!-- @slot scripts -->` (page JS config) slots
+src/assets/              css (Elementor post-*.css, fonts.css), vendor (Elementor/Hello/jQuery JS+CSS), images, fonts, js/forms.js
+src/public/              copied verbatim to the dist root: .htaccess, robots.txt, sitemap.xml, api/ (Libro de Reclamaciones backend)
+```
+
+Edit the header or footer once in `src/layouts/`; every page picks it up. Page copy lives in `src/pages/`.
+All asset URLs are root-relative (`/assets/...`), so the site must be served from the domain root.
+
+## Forms
+
+`<form data-whatsapp="{{site.whatsapp}}">` is validated and sent to WhatsApp by `src/assets/js/forms.js`
+(number in `src/site.json`). The Elementor AJAX handler never runs.
+
+## Tools (dev only)
+
+- `tools/wp-import.mjs`: one-shot importer from the local WordPress (`http://localhost:8082`). It OVERWRITES generated
+  layouts/pages/vendor assets; hand edits to those must be redone. SEO titles/descriptions live in `tools/import-meta.json`.
+- `tools/visual-compare.mjs`: Chrome (CDP) screenshots at 1440 and 390, pixel diff, console/network capture.
+  Output: `docker/screenshots/static-*.png` and `docker/screenshots/static-diff.md`.
+- `tools/check-assets.mjs`: the checker behind `npm run check`.
+
+## Local preview with production-like Apache (honours .htaccess)
+
+```bash
+docker compose -f docker-compose.static.yml -p arbicop-static up -d --build   # http://localhost:8084
+docker compose -p web-arbicop up -d db wordpress                              # reference WordPress, http://localhost:8082
+```
+
+## Deploy
+
+Production is cPanel Git Version Control (repo cloned outside the docroot, `.cpanel.yml` copies `dist/` and 3 shop files with `cp` only).
+Full procedure (backup, SSH deploy key, cutover of the legacy WordPress root, smoke test, rollback): **[DEPLOY.md](DEPLOY.md)** (Spanish).
+Routine update: edit `src/` -> `npm run build` -> commit `src/` + `dist/` -> push -> cPanel "Update from Remote" + "Deploy HEAD Commit".
+Rehearsal in Docker (clean/stale accounts, cutover, redeploy, rollback; results in `docker/deploy-test/results.md`):
+
+```bash
+python tools/check-cpanel-yml.py                                              # .cpanel.yml parses, paths exist
+docker compose -f docker-compose.deploy-test.yml -p arbicop-deploytest up -d --build
+bash docker/deploy-test/run.sh                                                # stale :8090, clean :8092; also needs curl
+```
+
+## Deploy notes
+
+- `.htaccess` has no WordPress rewrites and never touches `/tienda/` (its own WordPress). `/.well-known/` must survive the cutover.
+- `/libro-de-reclamaciones-2/` redirects to `/libro-de-reclamaciones/`; `api/` is the PHP complaints book (see "Libro de Reclamaciones").
+- The legacy WordPress files in the repo root are ignored by git (see `.gitignore`).
+
+## Libro de Reclamaciones (Ley 29571, D.S. 011-2011-PCM)
+
+The only dynamic part of the site: a PHP backend in `src/public/api/` (no database, no Composer; FPDF 1.86 + PHPMailer 6.9.3 vendored).
+Public URL of the form: `/libro-de-reclamaciones/` (page `src/pages/libro-de-reclamaciones.html`, script `src/assets/js/libro.js`,
+styles `src/assets/css/libro-form.css`). Fields are those of the old WordPress plugin form (page 438).
+
+### Flow
+
+1. The page loads `/assets/data/ubigeo.json` (departamento > provincia > distrito, exported once from the `wpfb_ubigeo_*` tables;
+   `tools/ubigeo-export.mjs` is the exporter; SAN MIGUEL/Cajamarca and its district BOLIVAR were missing in the source and were added by hand)
+   and asks `GET /api/token.php` for a session-bound token.
+2. `POST /api/reclamo.php` checks, cheapest first: method/size, same Origin, honeypot (`website_alt`), token + minimum fill time (6 s),
+   field validation (`api/src/Validator.php`, ubigeo checked against the same JSON), optional hCaptcha, atomic rate limits
+   (1 claim/IP/30 min, 5/IP/day, 20/h and 80/day global, repeated content in 24 h), then issues the number `LR-YYYY-NNNN`.
+3. The one-page PDF (`api/src/ClaimPdf.php`) is archived in `api/storage/hojas/<year>/` together with a JSON record
+   (hashed IP, per-message notification state) BEFORE any e-mail is attempted.
+4. Two independent e-mails, company first: one to `reclamaciones@arbicop.com` (Reply-To = consumer) and an acknowledgement to the
+   consumer (Reply-To = company), each with the PDF. One failing never blocks the other; each has its own state
+   (`sent | failed | skipped | dry_run`). If the company mail is not delivered a marker is written to `api/storage/pendientes/`
+   and a `PENDING` line to `api/storage/log/claims.log`: `ls api/storage/pendientes/` is the operator's to-do list.
+5. The success panel shows the sheet number and a PDF link `GET /api/hoja.php?n=<number>&k=<hmac key>`; the key is returned only to the
+   submitter, the path is built from the validated number and checked with `realpath` inside `storage/hojas/`.
+
+Only `reclamo.php`, `token.php` and `hoja.php` answer over HTTP. `api/{storage,lib,src,tools,fonts,assets}` and `api/config*.php` are
+denied by the root `.htaccess` (and each folder has its own deny rule).
+
+### Provider data and configuration
+
+Provider data lives in `api/config.php` (razon social, RUC, domicilio fiscal, phone, mailbox). Items still to verify before go-live are
+marked `TODO` there: the legal name suffix (SUNAT text was truncated), the SMTP host, the exact legal wording of the 15 business days.
+
+### SMTP on the server (secrets)
+
+1. Create the mailbox `reclamaciones@arbicop.com` in cPanel; confirm `smtp.host`/`port` in `api/config.php` (default `mail.arbicop.com:465` SSL).
+2. On the server copy `api/config.secret.example.php` to `api/config.secret.php` and set `smtp_password` (and optionally the hCaptcha keys).
+   `config.secret.php` is git-ignored and denied over HTTP; `cp -R dist/. $SITE/` never deletes it. Never commit real credentials.
+3. `api/storage/` must be writable by PHP (750/755). Keep the PDFs 2 years (back up `storage/hojas/`). Never delete `storage/counter.dat`.
+4. Runtime: PHP 8.1 to 8.4 with `mbstring`, `zlib`, `openssl`, sessions. `display_errors` is forced off; errors go to `storage/log/php-error.log`.
+
+### Numbering
+
+A fresh install starts at `LR-<year>-0001` (series restarts every year). The counter `storage/counter.dat` is rebuilt from the highest
+archived sheet of the year, so to continue an existing series put the old PDFs/JSONs as `storage/hojas/<year>/LR-<year>-NNNN.pdf`
+(or just create `counter.dat` with `{"year":2026,"number":<last used>}`) before the first claim. Never reset it by hand once sheets exist.
+
+### DRY RUN (no mail is sent)
+
+`mail_dry_run => true` in `config.secret.php`, or env `LR_MAIL_DRY_RUN=1`: PDF and archive are real, both e-mails are written as
+`storage/correo/<number>-empresa.eml` and `-consumidor.eml`. Keep it OFF in production. In dry-run only, env `LR_TEST_LIMITS` (JSON) can
+relax the rate limits for tests.
+
+### End-to-end test (Docker, real PHP)
+
+```bash
+npm run build
+docker compose -f docker-compose.libro-test.yml -p arbicop-libro up -d --build   # 8085 PHP 8.4, 8086 PHP 8.1, 8087 production limits
+node tools/libro-e2e.mjs --fresh      # needs Node >= 18, docker, pdftotext/pdfinfo; writes docker/libro-test/results.md
+```
+
+Each service has its own storage volume, so `dist/api/storage` never receives runtime data. Real SMTP delivery, the real cPanel PHP/LiteSpeed
+and mobile layout of the form are NOT covered by this test.
+
+`tools/wp-import.mjs` overwrites generated pages: the libro page is now hand-maintained, do not re-import it.

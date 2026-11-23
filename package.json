@@ -1,0 +1,15 @@
+{
+  "name": "arbicop-static",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Static clone of arbicop.com (Elementor render) with shared header/footer layouts and a zero-dependency build.",
+  "type": "module",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "build": "node build.mjs",
+    "watch": "node build.mjs --watch",
+    "dev": "node build.mjs --serve",
+    "check": "node tools/check-assets.mjs",
+    "compare": "node tools/visual-compare.mjs"
+  }
+}
