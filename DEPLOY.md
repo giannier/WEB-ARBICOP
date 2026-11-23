@@ -1,6 +1,6 @@
 # Guía de despliegue en cPanel (ARBICOP)
 
-Resultado final: `arbicop.com` pasa de WordPress/Elementor a un sitio **estático** (carpeta `dist/`) y `/tienda/` **sigue siendo WordPress** (WooCommerce), sin tocarse salvo 3 archivos propios en `tienda/wp-content/mu-plugins/`.
+Resultado final: `arbicop.com` pasa de WordPress/Elementor a un sitio **estático** (carpeta `dist/`) y `/tienda/` **sigue siendo WordPress** (WooCommerce). El repo solo añade a `tienda/wp-content/mu-plugins/` el código propio de la cabecera/pie (`arbicop-chrome.php`, carpeta `arbicop-chrome/`) y el icono del carrito (`arbicop-shop-cart.php`); no toca el núcleo, plugins, temas, uploads ni la base de datos de la tienda. Ver "Qué controla este repo y qué sigue en WordPress".
 
 | Dato | Valor |
 |---|---|
@@ -18,7 +18,7 @@ Resultado final: `arbicop.com` pasa de WordPress/Elementor a un sitio **estátic
 
 1. Acceso a cPanel con **Git Version Control**, **Terminal** (o SSH Access), **File Manager**, **MultiPHP Manager**, **phpMyAdmin** y **Backup**.
 2. PHP del dominio: **8.1 a 8.4** (hoy el `.htaccess` raíz fija `ea-php82`). Anota la versión actual en MultiPHP Manager.
-3. Confirma que existe `/home/arbicopc/public_html/tienda/wp-content/mu-plugins/` (hoy contiene `wp-toolkit.php`). `.cpanel.yml` **no** crea carpetas: si faltara, el despliegue marca error al copiar los 3 archivos de la tienda (el sitio estático ya estaría copiado).
+3. Confirma que existe `/home/arbicopc/public_html/tienda/wp-content/mu-plugins/` (hoy contiene `wp-toolkit.php`). `.cpanel.yml` **no** crea carpetas: si faltara, el despliegue marca error al copiar los archivos de la tienda (el sitio estático ya estaría copiado).
 4. Decisiones ya tomadas (ver también "Imágenes antiguas"):
    - `wp-content/uploads/` del WordPress raíz **se deja en su sitio** (con PHP desactivado) para que las URLs de imágenes antiguas sigan funcionando; el resto del WordPress raíz se mueve.
    - La carpeta `beneficios/` antigua se mueve completa; solo se devuelven sus 2 archivos `google*.html` (verificación de Search Console).
@@ -134,7 +134,7 @@ Ahora, **sin demora**, en Git Version Control > **Deploy HEAD Commit** (paso 4).
 ## 4. Deploy HEAD Commit y configuración del servidor
 
 1. cPanel > **Git Version Control** > *Manage* en `WEB-ARBICOP` > pestaña **Pull or Deploy** > **Deploy HEAD Commit**.
-   - Ejecuta `.cpanel.yml`: copia `dist/` al docroot y 3 archivos propios de la tienda a `tienda/wp-content/mu-plugins/` (`arbicop-shared-header.php`, `arbicop-shared-header.css`, `arbicop-shop-cart.php`). Solo `cp`: no borra nada y no toca el resto de `/tienda/`.
+   - Ejecuta `.cpanel.yml`: copia `dist/` al docroot, la carpeta `arbicop-chrome/` y los archivos `arbicop-chrome.php` y `arbicop-shop-cart.php` a `tienda/wp-content/mu-plugins/`. Solo `cp`: no borra nada y no toca el resto de `/tienda/`.
    - Si el botón sale deshabilitado: el repo del servidor debe estar limpio (sin cambios locales) y `.cpanel.yml` debe estar commiteado.
    - Una caída del paso 3 al 4 de más de unos minutos significa que debes hacer el rollback (paso 6).
 2. Restaura lo que el despliegue pisó o que había en el raíz viejo (verificación de Search Console y bloque de PHP de cPanel):
@@ -172,7 +172,7 @@ grep -n 'AddHandler\|cPanel-generated' "$DOC/.htaccess"
 - [ ] MultiPHP Manager: la versión de `arbicop.com` es la anotada en el paso 0 (8.1 a 8.4).
 - [ ] `/`, `/nosotros/`, `/peritaje/`, `/arbitraje/`, `/conciliacion/`, `/tasacion/`, `/corretaje/`, `/beneficios/`, `/contacto/`: cargan con estilos, imágenes y menú; el menú, el pie y los enlaces sociales (Facebook, Instagram, TikTok, YouTube) abren a donde deben.
 - [ ] Formulario de contacto / botón de WhatsApp: abre WhatsApp con el mensaje y el número +51 943 704 298.
-- [ ] `/tienda/` carga (cabecera igual a la del sitio); un producto abre; **añadir al carrito** funciona y el icono del carrito de la cabecera actualiza el contador; `/tienda/cart/` y `/tienda/checkout/` cargan; `/tienda/wp-admin/` entra.
+- [ ] `/tienda/` carga (cabecera y pie iguales a los del sitio, con "Tienda" activo en el menú; el HTML contiene `data-arbicop-chrome="header"`); un producto abre; **añadir al carrito** funciona y el icono del carrito de la cabecera actualiza el contador; `/tienda/cart/` y `/tienda/checkout/` cargan; `/tienda/wp-admin/` entra.
 - [ ] Pago real de la tienda (izipay/pasarela): no se probó en el simulacro. Haz una compra de prueba en modo de prueba de la pasarela y vuelve a modo producción al terminar.
 - [ ] `/libro-de-reclamaciones/`: envía un **reclamo de prueba** (consumidor con tu propio correo). Deben llegar DOS correos con el PDF (uno a `reclamaciones@`, otro al correo ingresado) y el panel debe ofrecer la descarga del PDF; descárgalo. Si no llega el de la empresa queda un marcador en `api/storage/pendientes/`; revisa `api/storage/log/claims.log` y host/contraseña SMTP.
 - [ ] `/libro-de-reclamaciones-2/` redirige (301) a `/libro-de-reclamaciones/`.
@@ -239,7 +239,7 @@ else
 fi
 ```
 
-Verifica `/` (WordPress), `/tienda/`, y que `api/storage/` y `api/config.secret.php` siguen en su sitio (el WordPress viejo no los usa). Si había un `wp-content/uploads/.htaccess` propio, se restaura; el que puso el paso 3 se sustituye. Los 3 archivos de `tienda/wp-content/mu-plugins/` quedan (son inofensivos); si quieres devolver la tienda a su estado original muévelos como en la rama siguiente.
+Verifica `/` (WordPress), `/tienda/`, y que `api/storage/` y `api/config.secret.php` siguen en su sitio (el WordPress viejo no los usa). Si había un `wp-content/uploads/.htaccess` propio, se restaura; el que puso el paso 3 se sustituye. Los archivos propios de `tienda/wp-content/mu-plugins/` quedan; si quieres devolver la tienda a su cabecera/pie originales aparta el mu-plugin como en la rama siguiente.
 
 Para volver a poner el sitio estático después: repite 3 y 4 (el correlativo y los reclamos continúan porque `storage/` no se movió). Si por error se movieron, restáuralos desde `respaldos/api-state-<fecha>/` **antes** de recibir nuevos reclamos.
 
@@ -249,19 +249,70 @@ Síntomas: `/tienda/` da error 500, pantalla en blanco, cabecera rota o el carri
 
 1. Mira `public_html/tienda/php_errorlog` y el `error_log` del dominio (cPanel > Errors).
 2. Comprueba la versión de PHP (MultiPHP Manager): si el despliegue quitó el bloque de PHP y cambió la versión, vuelve a guardarla (paso 4.3).
-3. Si el error nombra uno de los 3 archivos propios, apártalos (se mueven, no se borran) y recarga `/tienda/`:
+3. Si el error nombra uno de los archivos propios, o la cabecera/pie nuevos se ven mal, apártalos (se mueven, no se borran) y recarga `/tienda/`. La tienda vuelve sola a su cabecera y pie originales (ver "Interruptor de emergencia" más abajo para la alternativa sin mover archivos):
 
 <!-- sim:shopfix -->
 ```bash
 MU=/home/arbicopc/public_html/tienda/wp-content/mu-plugins
 DEST=/home/arbicopc/respaldos/mu-plugins-apartados-$(date +%Y%m%d-%H%M%S)
 mkdir -p "$DEST"
-for f in arbicop-shared-header.php arbicop-shared-header.css arbicop-shop-cart.php; do
+for f in arbicop-chrome.php arbicop-chrome arbicop-shop-cart.php; do
   [ -e "$MU/$f" ] && mv -v "$MU/$f" "$DEST/"
 done
 ```
 
 4. Si sigue roto y no es por esos archivos, el sitio estático no lo causó: restaura `arbicopc_wp847` y los archivos de `tienda/` desde el paso 1, o haz el rollback completo.
+
+## Qué controla este repo y qué sigue en WordPress
+
+| Lo controla este repo (editar `src/` y desplegar) | Sigue en WordPress (panel de la tienda) |
+|---|---|
+| Sitio estático (`/`, `/nosotros/`, `/peritaje/`, ... , `/contacto/`) | Productos, precios, stock y categorías de la tienda |
+| **Cabecera, menú, pie e icono del carrito de la tienda** (`/tienda/...`): salen de `src/layouts/header.html` y `footer.html` | Pedidos, clientes y correos de WooCommerce |
+| Libro de Reclamaciones (`/libro-de-reclamaciones/`, `/api/`) | Configuración de la pasarela de pago (izipay) |
+| Estilos y assets compartidos (`src/assets/`) | Matrícula automática a Moodle (plugin) |
+| | Contenido de las páginas de la tienda (listado, producto, carrito, checkout, mi cuenta) |
+
+Cómo funciona lo de la tienda: `npm run build` genera `tienda/wp-content/mu-plugins/arbicop-chrome/` (`header.html`, `footer.html`, `chrome.css`, `manifest.json`) desde los mismos `src/layouts/` que usa el sitio estático; el mu-plugin `arbicop-chrome.php` pinta esas piezas en la tienda y **no escribe nada en la base de datos**: solo ignora, al renderizar, la cabecera/pie de Elementor y de Hello. Cambiar el menú o el pie = editar `src/layouts/`, `npm run build`, commit, deploy. Las plantillas de cabecera/pie que existen dentro de WordPress quedan sin uso (no se borran; sirven de respaldo si se apaga el interruptor).
+
+Seguridad por diseño (fail-safe): si falta el `manifest.json` o alguna pieza, si no coinciden sus sumas de control, si falta un asset estático en el docroot o si el interruptor está activo, el mu-plugin **no hace nada** y la tienda muestra su cabecera/pie originales. Nunca toca `wp-admin`, `wp-login`, ajax, REST, feeds ni el editor/vista previa de Elementor.
+
+### Interruptor de emergencia y rollback de cabecera/pie (sin borrar nada)
+
+Cualquiera de estas tres acciones devuelve la tienda a su cabecera y pie originales al instante (a veces hay que vaciar la caché de página: LiteSpeed/WP Optimize):
+
+1. Crear un archivo vacío `public_html/tienda/wp-content/mu-plugins/arbicop-chrome.off` (File Manager). Se quita renombrándolo. Los despliegues nunca lo borran ni lo crean.
+2. Añadir `define('ARBICOP_CHROME_DISABLE', true);` en `public_html/tienda/wp-config.php`.
+3. Apartar (mover, no borrar) `arbicop-chrome.php` y la carpeta `arbicop-chrome/` a `respaldos/` (es lo que hace la rama "la tienda se rompió", más arriba).
+
+Para volver a activarla: quita el archivo `.off` / la línea de `wp-config.php` / devuelve los archivos y ejecuta de nuevo *Deploy HEAD Commit*.
+
+<!-- sim:chromeoff -->
+```bash
+MU=/home/arbicopc/public_html/tienda/wp-content/mu-plugins
+: > "$MU/arbicop-chrome.off"
+ls -l "$MU/arbicop-chrome.off"
+```
+
+### Primer despliegue con la cabecera/pie de la tienda (pasos manuales)
+
+1. Haz el respaldo del paso 1 (incluye la base `arbicopc_wp847` y `tienda/`).
+2. Despliega como siempre (pasos 3 y 4). El sitio estático se copia primero: los assets que usa la tienda (`/assets/css/...`, imágenes del logo) llegan en el mismo despliegue.
+3. Ejecuta `sh tools/post-deploy-check.sh https://arbicop.com`: debe pasar la línea "`/tienda/` renders the repo header and footer".
+4. Si hay caché de página (LiteSpeed Cache, WP Optimize), purga la caché de la tienda una vez.
+5. Revisa en ventana privada `/tienda/`, un producto, `/tienda/cart/`, `/tienda/checkout/` (sin pagar) y `/tienda/my-account/`: cabecera y pie nuevos, menú con "Tienda" activo, desplegable de "Formaciones", menú hamburguesa en móvil y contador del carrito.
+6. Si algo falla, aplica el interruptor de emergencia (arriba): la tienda no queda caída, solo vuelve a su cabecera anterior.
+
+Supuestos no verificados: el entorno local de la tienda es una copia del volcado del 2026-11-20; las versiones de Elementor / pro-elements / Hello de producción pueden haber cambiado desde entonces (el mu-plugin usa filtros públicos: `hello_elementor_header_footer` y `elementor/theme/get_location_templates/template_id`).
+
+## Flujo de trabajo
+
+1. Edita `src/` (páginas, `src/layouts/header.html` / `footer.html`, estilos).
+2. `npm run build` y `npm run check` (regeneran `dist/` y `tienda/wp-content/mu-plugins/arbicop-chrome/`).
+3. `python tools/check-cpanel-yml.py` si tocaste `.cpanel.yml` o el mu-plugin.
+4. Commit **incluyendo `dist/` y `arbicop-chrome/`** (cPanel no ejecuta npm) y `git push`.
+5. cPanel > Git Version Control > *Update from Remote* y luego *Deploy HEAD Commit*.
+6. `sh tools/post-deploy-check.sh https://arbicop.com` (obligatorio) y revisa MultiPHP Manager.
 
 ## Mantenimiento habitual
 
@@ -302,7 +353,8 @@ URLs de páginas antiguas sin equivalente darán 404 (por ejemplo páginas WooCo
 - **La ejecución real de `.cpanel.yml` en cPanel no está verificada.** Se desconoce con certeza el directorio de trabajo, el shell y si cPanel exige un árbol de trabajo limpio en tu versión. Por eso todos los comandos usan rutas absolutas. El simulacro ejecuta esos mismos comandos sin modificar, como usuario no root, pero no es cPanel.
 - Servidor web: el simulacro usa Apache 2.4 + mod_php 8.1; producción parece **LiteSpeed** (el `.htaccess` viejo traía bloques LSCACHE). Reglas, cabeceras y `RedirectMatch` son compatibles en teoría; compruébalo con el smoke test (sobre todo 403 de `/api/*`, redirección HTTPS y 404 propio). La versión de PHP real se controla con el bloque del paso 4.
 - SMTP real (host, certificado, entrega a bandeja) **no** probado: el simulacro usa modo dry-run.
-- Pasarela de pago izipay en vivo y flujo completo de compra: **no** probados.
+- Pasarela de pago izipay en vivo y flujo completo de compra: **no** probados (la cabecera/pie nuevos se probaron en una copia local de la tienda con carrito, checkout y mi cuenta, sin enviar pagos).
+- Cabecera/pie de la tienda: no verificado en producción real (LiteSpeed, caché de página, versiones actuales de Elementor/Hello/pro-elements, diferencias de la base real frente a la copia local).
 - El clon SSH real desde GitHub no se pudo ensayar (en el simulacro el repo se arma con `git init` + `git clone` local).
 - El cumplimiento de permisos reales de cPanel (suEXEC/CageFS) no se reprodujo; el simulacro corre Apache como el usuario `arbicopc` para aproximarlo.
 
