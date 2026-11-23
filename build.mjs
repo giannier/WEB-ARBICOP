@@ -17,6 +17,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import http from 'node:http';
+import crypto from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -131,6 +132,78 @@ function markActive(html, pagePath) {
   return html;
 }
 
+
+// ---------------------------------------------------------------- shop chrome
+/**
+ * Shop chrome as code: emits the header/footer partials used by the WordPress shop (/tienda) from the SAME
+ * src/layouts files as the static pages. The mu-plugin tienda/wp-content/mu-plugins/arbicop-chrome.php renders them.
+ * Output (tracked in git, deployed by cp): arbicop-chrome/{header.html,footer.html,chrome.css,manifest.json}.
+ * The header gets the cart slot ({{shop:cart}}, replaced by [arbicop_cart] in PHP) and the Tienda item marked active.
+ */
+const CHROME_OUT = path.join(ROOT, 'tienda', 'wp-content', 'mu-plugins', 'arbicop-chrome');
+
+/** Re-scopes the root Elementor kit CSS (.elementor-kit-N + its global rules) under [data-arbicop-chrome] so it cannot leak into the shop. */
+function scopeKitCss(css, resetVars = []) {
+  css = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  const scope = '[data-arbicop-chrome][data-arbicop-chrome]';   // doubled attribute = (0,2,0): beats the shop's widget-level kit rules
+  const fixSel = sel => sel.split(',').map(p => p.trim()).filter(Boolean).map(p =>
+    /^\.elementor-kit-\d+/.test(p) ? p.replace(/^\.elementor-kit-\d+/, scope) : scope + ' ' + p).join(',');
+  const rule = (sel, body) => {
+    body = body.trim();
+    if (!body || /entry-title|\.site-(header|footer)/.test(sel)) return '';
+    return fixSel(sel.trim()) + '{' + body + '}';
+  };
+  const out = [];
+  const re = /([^{}]+)\{((?:[^{}]*\{[^{}]*\})+[^{}]*|[^{}]*)\}/g;
+  let m;
+  while ((m = re.exec(css))) {
+    const head = m[1].trim();
+    if (head.startsWith('@media')) {
+      const inner = [];
+      for (const r of m[2].matchAll(/([^{}]+)\{([^{}]*)\}/g)) { const x = rule(r[1], r[2]); if (x) inner.push(x); }
+      if (inner.length) out.push(head + '{' + inner.join('') + '}');
+    } else {
+      const x = rule(head, m[2]);
+      if (x) out.push(x);
+    }
+  }
+  if (resetVars.length) out.push(scope + '{' + resetVars.map(v => v + ':initial').join(';') + '}');
+  return out.join('\n') + '\n';
+}
+
+function buildShopChrome(layouts) {
+  const cfgFile = path.join(SRC, 'layouts', 'shop-chrome.json');
+  if (!exists(cfgFile) || !layouts['header-located'] || !layouts['footer-located']) return;
+  const cfg = JSON.parse(read(cfgFile));
+  let header = render(layouts['header-located'], {shop_cart: '1'}, layouts);
+  header = markActive(header, 'tienda/').replace(/^<header /, '<header data-arbicop-chrome="header" ');
+  const footer = render(layouts['footer-located'], {}, layouts).replace(/^<footer /, '<footer data-arbicop-chrome="footer" ');
+  if (!header.includes('data-arbicop-chrome="header"') || !footer.includes('data-arbicop-chrome="footer"')) throw new Error('shop chrome: unexpected header/footer wrapper');
+  if (!header.includes('{{shop:cart}}')) throw new Error('shop chrome: cart slot missing in header');
+  const kit = scopeKitCss(read(path.join(SRC, cfg.kit)), cfg.reset_vars || []);
+  const sha = s => crypto.createHash('sha256').update(s).digest('hex');
+  const required = new Set();
+  for (const m of (header + footer).matchAll(/\/assets\/[^\s"',)]+/g)) required.add(m[0].replace(/&amp;/g, '&').split(/[?#]/)[0]);
+  for (const c of cfg.css) required.add(c.src);
+  const missing = [...required].filter(p => !exists(path.join(SRC, p)));
+  if (missing.length) throw new Error('shop chrome: assets not found in src/: ' + missing.join(', '));
+  const assetHash = [...required].sort().map(p => sha(fs.readFileSync(path.join(SRC, p)))).join('');
+  const hash = sha(header + footer + kit + JSON.stringify(cfg) + assetHash).slice(0, 12);
+  const manifest = {
+    version: 1, hash,
+    generated_by: 'build.mjs (src/layouts/header.html, footer.html, shop-chrome.json)',
+    files: {'header.html': sha(header), 'footer.html': sha(footer), 'chrome.css': sha(kit)},
+    css: cfg.css, js: cfg.js, requires: [...required].sort(),
+  };
+  const files = {'header.html': header, 'footer.html': footer, 'chrome.css': kit, 'manifest.json': JSON.stringify(manifest, null, 2) + '\n'};
+  fs.mkdirSync(CHROME_OUT, {recursive: true});
+  for (const [name, text] of Object.entries(files)) {
+    const f = path.join(CHROME_OUT, name);
+    if (!exists(f) || read(f) !== text) fs.writeFileSync(f, text);
+  }
+  console.log(`[build] shop chrome: hash ${hash}, ${required.size} required assets`);
+}
+
 // ---------------------------------------------------------------- build
 function build() {
   const t0 = Date.now();
@@ -213,6 +286,7 @@ function build() {
   // src/public/** goes to the root of dist/ (.htaccess, robots.txt, ...)
   copyDir(path.join(SRC, 'public'), DIST);
 
+  buildShopChrome(layouts);
   console.log(`[build] ${pageCount} pages, ${copied} assets copied, ${Date.now() - t0} ms`);
 }
 

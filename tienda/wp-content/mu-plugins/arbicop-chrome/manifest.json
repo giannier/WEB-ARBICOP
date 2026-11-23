@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "hash": "b9245390e252",
+  "generated_by": "build.mjs (src/layouts/header.html, footer.html, shop-chrome.json)",
+  "files": {
+    "header.html": "eeed06fe930a071e4b4dafb62930ac9610efad06ed05737a63f64aaba6de9a2d",
+    "footer.html": "e4e78266cdd837feeee50240b9c98d354de622de9d501b0578f1c7a3f8900613",
+    "chrome.css": "fd7434aab18c451dc3ffb9d83ee386bbb103d6dc49d8b4e6aaf6c664087c6fbf"
+  },
+  "css": [
+    {
+      "id": "fonts",
+      "src": "/assets/css/fonts.css"
+    },
+    {
+      "id": "elementor-frontend",
+      "handle": "elementor-frontend",
+      "src": "/assets/vendor/elementor/assets/css/frontend.min.css"
+    },
+    {
+      "id": "widget-icon-list",
+      "handle": "widget-icon-list",
+      "src": "/assets/vendor/elementor/assets/css/widget-icon-list.min.css"
+    },
+    {
+      "id": "e-animation-shrink",
+      "handle": "e-animation-shrink",
+      "src": "/assets/vendor/elementor/assets/lib/animations/styles/e-animation-shrink.min.css"
+    },
+    {
+      "id": "widget-social-icons",
+      "handle": "widget-social-icons",
+      "src": "/assets/vendor/elementor/assets/css/widget-social-icons.min.css"
+    },
+    {
+      "id": "widget-image",
+      "handle": "widget-image",
+      "src": "/assets/vendor/elementor/assets/css/widget-image.min.css"
+    },
+    {
+      "id": "widget-nav-menu",
+      "handle": "widget-nav-menu",
+      "src": "/assets/vendor/pro-elements/assets/css/widget-nav-menu.min.css"
+    },
+    {
+      "id": "widget-divider",
+      "handle": "widget-divider",
+      "src": "/assets/vendor/elementor/assets/css/widget-divider.min.css"
+    },
+    {
+      "id": "widget-heading",
+      "handle": "widget-heading",
+      "src": "/assets/vendor/elementor/assets/css/widget-heading.min.css"
+    },
+    {
+      "id": "widget-spacer",
+      "handle": "widget-spacer",
+      "src": "/assets/vendor/elementor/assets/css/widget-spacer.min.css"
+    },
+    {
+      "id": "post-535",
+      "src": "/assets/css/elementor/post-535.css"
+    },
+    {
+      "id": "post-536",
+      "src": "/assets/css/elementor/post-536.css"
+    }
+  ],
+  "js": [
+    "smartmenus"
+  ],
+  "requires": [
+    "/assets/css/elementor/post-535.css",
+    "/assets/css/elementor/post-536.css",
+    "/assets/css/fonts.css",
+    "/assets/images/uploads/2026/06/AvisoVirtual_page1-1086x1536.png",
+    "/assets/images/uploads/2026/06/AvisoVirtual_page1-1448x2048.png",
+    "/assets/images/uploads/2026/06/AvisoVirtual_page1-212x300.png",
+    "/assets/images/uploads/2026/06/AvisoVirtual_page1-724x1024.png",
+    "/assets/images/uploads/2026/06/AvisoVirtual_page1-768x1086.png",
+    "/assets/images/uploads/2026/06/AvisoVirtual_page1.png",
+    "/assets/images/uploads/2026/06/LOGO-COLOR-BLANCO-scaled-e1782442018277-1024x250.png",
+    "/assets/images/uploads/2026/06/LOGO-COLOR-BLANCO-scaled-e1782442018277-1536x375.png",
+    "/assets/images/uploads/2026/06/LOGO-COLOR-BLANCO-scaled-e1782442018277-300x73.png",
+    "/assets/images/uploads/2026/06/LOGO-COLOR-BLANCO-scaled-e1782442018277-768x188.png",
+    "/assets/images/uploads/2026/06/LOGO-COLOR-BLANCO-scaled-e1782442018277.png",
+    "/assets/images/uploads/elementor/thumbs/cropped-LOGO-ARBICOP-rpdcj3ggugk7usj6ievig5rt2k3s8l9xsct85y4nlc.png",
+    "/assets/vendor/elementor/assets/css/frontend.min.css",
+    "/assets/vendor/elementor/assets/css/widget-divider.min.css",
+    "/assets/vendor/elementor/assets/css/widget-heading.min.css",
+    "/assets/vendor/elementor/assets/css/widget-icon-list.min.css",
+    "/assets/vendor/elementor/assets/css/widget-image.min.css",
+    "/assets/vendor/elementor/assets/css/widget-social-icons.min.css",
+    "/assets/vendor/elementor/assets/css/widget-spacer.min.css",
+    "/assets/vendor/elementor/assets/lib/animations/styles/e-animation-shrink.min.css",
+    "/assets/vendor/pro-elements/assets/css/widget-nav-menu.min.css"
+  ]
+}

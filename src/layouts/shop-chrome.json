@@ -1,0 +1,85 @@
+{
+  "_comment": "Assets the shop (/tienda) needs to render src/layouts header+footer. Read by build.mjs (shop chrome generator). css entries: 'handle' = WordPress style handle registered by the shop's own Elementor (preferred, version-matched with the shop JS); 'src' = docroot path used as fallback or when there is no handle. Paths are root-relative and shipped by the static deploy (dist/).",
+  "kit": "assets/css/elementor/post-45.css",
+  "css": [
+    {
+      "id": "fonts",
+      "src": "/assets/css/fonts.css"
+    },
+    {
+      "id": "elementor-frontend",
+      "handle": "elementor-frontend",
+      "src": "/assets/vendor/elementor/assets/css/frontend.min.css"
+    },
+    {
+      "id": "widget-icon-list",
+      "handle": "widget-icon-list",
+      "src": "/assets/vendor/elementor/assets/css/widget-icon-list.min.css"
+    },
+    {
+      "id": "e-animation-shrink",
+      "handle": "e-animation-shrink",
+      "src": "/assets/vendor/elementor/assets/lib/animations/styles/e-animation-shrink.min.css"
+    },
+    {
+      "id": "widget-social-icons",
+      "handle": "widget-social-icons",
+      "src": "/assets/vendor/elementor/assets/css/widget-social-icons.min.css"
+    },
+    {
+      "id": "widget-image",
+      "handle": "widget-image",
+      "src": "/assets/vendor/elementor/assets/css/widget-image.min.css"
+    },
+    {
+      "id": "widget-nav-menu",
+      "handle": "widget-nav-menu",
+      "src": "/assets/vendor/pro-elements/assets/css/widget-nav-menu.min.css"
+    },
+    {
+      "id": "widget-divider",
+      "handle": "widget-divider",
+      "src": "/assets/vendor/elementor/assets/css/widget-divider.min.css"
+    },
+    {
+      "id": "widget-heading",
+      "handle": "widget-heading",
+      "src": "/assets/vendor/elementor/assets/css/widget-heading.min.css"
+    },
+    {
+      "id": "widget-spacer",
+      "handle": "widget-spacer",
+      "src": "/assets/vendor/elementor/assets/css/widget-spacer.min.css"
+    },
+    {
+      "id": "post-535",
+      "src": "/assets/css/elementor/post-535.css"
+    },
+    {
+      "id": "post-536",
+      "src": "/assets/css/elementor/post-536.css"
+    }
+  ],
+  "js": [
+    "smartmenus"
+  ],
+  "reset_vars": [
+    "--e-global-color-02a235f",
+    "--e-global-color-1ea616a",
+    "--e-global-typography-2ebd4ad-font-family",
+    "--e-global-typography-2ebd4ad-font-size",
+    "--e-global-typography-2ebd4ad-font-weight",
+    "--e-global-typography-65a2a86-font-family",
+    "--e-global-typography-65a2a86-font-size",
+    "--e-global-typography-65a2a86-font-weight",
+    "--e-global-typography-f5ebfbd-font-family",
+    "--e-global-typography-f5ebfbd-font-size",
+    "--e-global-typography-f5ebfbd-font-weight",
+    "--e-global-typography-primary-font-family",
+    "--e-global-typography-primary-font-size",
+    "--e-global-typography-primary-font-weight",
+    "--e-global-typography-secondary-font-size",
+    "--e-global-typography-text-font-weight"
+  ],
+  "_comment2": "reset_vars: Elementor global variables defined by the SHOP kit but not by the root kit (src/assets/css/elementor/post-45.css); reset on the chrome wrapper so shop-only values never leak into the header/footer. Regenerate from the shop kit CSS if the shop kit gains new globals. --e-global-typography-primary-font-family is also reset on purpose: the shop kit styles .elementor-widget-heading .elementor-heading-title with it (root kit has no such rule), which turned heading text Inter instead of DM Sans."
+}
