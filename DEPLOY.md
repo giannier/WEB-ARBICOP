@@ -6,7 +6,7 @@ Resultado final: `arbicop.com` pasa de WordPress/Elementor a un sitio **estátic
 |---|---|
 | Usuario cPanel / docroot | `arbicopc` / `/home/arbicopc/public_html` (dominio principal) |
 | Repo en el servidor (fuera del docroot) | `/home/arbicopc/repos/WEB-ARBICOP` |
-| Repo remoto (privado) | `giannier/WEB-ARBICOP` en GitHub |
+| Repo remoto (público) | `giannier/WEB-ARBICOP` en GitHub |
 | Respaldos en el servidor | `/home/arbicopc/respaldos/` (se crea si no existe) |
 | Respaldo local existente | `D:\TRABAJO\RESPALDOS\arbicop` (2 `.sql` + `arbicop.zip` + `MANIFEST.md` con sha256) |
 | Bases de datos | `arbicopc_wp847` (tienda, **sigue en uso**), `arbicopc_504` (WordPress raíz, prefijo `wpfb_`, queda sin uso: **no borrar**) |
@@ -42,42 +42,23 @@ ls -lh respaldos/
 
 4. Verifica que el `.tgz` abre (`tar -tzf respaldos/public_html-<fecha>.tgz | head`) y que los `.sql` pesan algo razonable.
 
-## 2. Preparar el repositorio, la llave SSH y el clon en cPanel
+## 2. Crear el repositorio en cPanel (Git Version Control)
 
-El repo es **privado**, así que cPanel necesita una *deploy key* SSH de solo lectura.
+El repo de GitHub es **público**, así que cPanel lo clona por HTTPS: no hace falta llave SSH ni *deploy key*.
 
-1. cPanel > **Terminal** (o SSH Access) y crea la llave **sin passphrase** (cPanel no puede pedirla):
+> **PELIGRO: la ruta del repositorio NUNCA puede ser `public_html`.** Debe ser `/home/arbicopc/repos/WEB-ARBICOP`, fuera del docroot. Si se clona dentro de `public_html`, `src/`, `tools/`, `docker/` y `DEPLOY.md` quedan públicos, la portada muestra un listado de carpetas y, para que cPanel deje clonar, hay que vaciar `public_html` (se pierde la tienda de la vista). Un incidente así ya ocurrió: lo borrado queda en `.trash` de cPanel y se recupera con *Restore*.
 
-```bash
-ssh-keygen -t ed25519 -C "cpanel-arbicop-deploy" -f ~/.ssh/arbicop_deploy -N ""
-cat ~/.ssh/arbicop_deploy.pub          # copia esta línea (la pública)
-chmod 600 ~/.ssh/arbicop_deploy
-```
-
-   (Alternativa: cPanel > **SSH Access** > *Generate a New Key* y luego *Manage* > *Authorize*.)
-2. GitHub > repo `giannier/WEB-ARBICOP` > **Settings > Deploy keys > Add deploy key**: pega la clave pública, título `cPanel arbicop`, **sin** marcar *Allow write access*.
-3. Indica a SSH qué llave usar para GitHub:
-
-```bash
-cat >> ~/.ssh/config <<'CFG'
-Host github.com
-  HostName github.com
-  User git
-  IdentityFile ~/.ssh/arbicop_deploy
-  IdentitiesOnly yes
-CFG
-chmod 600 ~/.ssh/config
-ssh -T git@github.com                  # acepta la huella (yes); debe saludar con el nombre del repo
-```
-
-4. cPanel > **Git™ Version Control** > **Create**:
+1. cPanel > **Git™ Version Control** > **Create**:
    - *Clone a Repository*: activado.
-   - **Clone URL**: `git@github.com:giannier/WEB-ARBICOP.git`
-   - **Repository Path**: `/home/arbicopc/repos/WEB-ARBICOP` (**fuera** del docroot).
+   - **Clone URL**: `https://github.com/giannier/WEB-ARBICOP.git`
+   - **Repository Path**: `repos/WEB-ARBICOP` (cPanel lo completa como `/home/arbicopc/repos/WEB-ARBICOP`; la carpeta `repos` la crea solo).
    - **Repository Name**: `WEB-ARBICOP`. Rama: `main`.
-5. **Create** y espera el clonado. Confirma que `/home/arbicopc/repos/WEB-ARBICOP/dist/` y `.cpanel.yml` existen.
+2. **Create** y espera "Clone is complete". Confirma que la lista muestra la ruta `/home/arbicopc/repos/WEB-ARBICOP`.
+3. Si te equivocaste de ruta: **Remove** en la lista solo quita el registro (no borra archivos); mueve (no borres) los archivos clonados de `public_html` a `respaldos/clon-erroneo` con File Manager y vuelve a crear el repo con la ruta correcta.
 
-Si el clonado falla por la llave: revisa `~/.ssh/config`, que la deploy key esté en ese repo y que el permiso de `~/.ssh` sea 700.
+Si el repo se hiciera privado más adelante, cPanel necesitaría una *deploy key* SSH de solo lectura (cPanel > SSH Access > Generate a New Key, autorizarla y añadirla en GitHub > Settings > Deploy keys, con la URL `git@github.com:giannier/WEB-ARBICOP.git`).
+
+Si tu cPanel no tiene **Terminal**, todos los comandos de esta guía se pueden reemplazar por **File Manager** (activa *Show Hidden Files*): crear carpetas y **Move** de archivos en vez de `mv`. El verificador (paso 4.3) también se puede ejecutar desde tu PC con `sh tools/post-deploy-check.sh https://arbicop.com`.
 
 ## 3. CUTOVER: mover (no borrar) el WordPress raíz
 
