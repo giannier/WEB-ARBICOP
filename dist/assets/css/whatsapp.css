@@ -5,4 +5,4 @@
 .arbicop-wa svg{display:block;}
 @media (prefers-reduced-motion:no-preference){.arbicop-wa::after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid #25d366;animation:arbicop-wa-pulse 2.4s ease-out infinite;}}
 @keyframes arbicop-wa-pulse{0%{transform:scale(1);opacity:.7}100%{transform:scale(1.55);opacity:0}}
-@media (max-width:767px){.arbicop-wa{right:14px;bottom:14px;width:54px;height:54px;}}
+@media (max-width:767px){.arbicop-wa{right:14px;bottom:84px;width:54px;height:54px;}}
