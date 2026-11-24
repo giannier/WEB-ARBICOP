@@ -58,6 +58,10 @@
     {
       "id": "post-536",
       "src": "/assets/css/elementor/post-536.css"
+    },
+    {
+      "id": "whatsapp",
+      "src": "/assets/css/whatsapp.css"
     }
   ],
   "js": [

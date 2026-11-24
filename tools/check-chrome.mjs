@@ -63,5 +63,15 @@ try {
   }
 } catch (e) { check(false, 'arbicop-chrome/manifest.json readable: ' + e.message); }
 
+// 4) floating WhatsApp button in the shop footer partial: exactly one, with the number from src/site.json, nothing unresolved
+try {
+  const footer = fs.readFileSync(path.join(dir, 'footer.html'), 'utf8');
+  const num = JSON.parse(fs.readFileSync(path.join(ROOT, 'src', 'site.json'), 'utf8')).whatsapp;
+  check((footer.match(/class="arbicop-wa"/g) || []).length === 1 && footer.includes(`https://wa.me/${num}?text=`), 'arbicop-chrome/footer.html has exactly one WhatsApp button with the site.json number');
+  check(!/\{\{[^}]*\}\}/.test(footer), 'arbicop-chrome/footer.html has no unresolved {{placeholders}}');
+  const css = JSON.parse(fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8')).css || [];
+  check(css.some(c => c.src === '/assets/css/whatsapp.css'), 'manifest.json loads /assets/css/whatsapp.css for the shop');
+} catch (e) { check(false, 'WhatsApp button checks: ' + e.message); }
+
 console.log(fails ? `\n${fails} check(s) FAILED` : '\nshop chrome static checks passed');
 process.exit(fails ? 1 : 0);

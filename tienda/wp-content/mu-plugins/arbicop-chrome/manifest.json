@@ -1,10 +1,10 @@
 {
   "version": 1,
-  "hash": "9c5aad7a6189",
+  "hash": "e95f629949ab",
   "generated_by": "build.mjs (src/layouts/header.html, footer.html, shop-chrome.json)",
   "files": {
     "header.html": "a5e407e8b4064ef34801c7bb3dcee6265cd8cfedd516781f65fad8df96a3e464",
-    "footer.html": "d35e683e2478936b28850f09d18e409ff3bc142ad342457fcdbfd7fac5239338",
+    "footer.html": "dbcddf88164f2f123f235a9a70f03a2f8ceba62076c5c7de149e02b29072304f",
     "chrome.css": "fd7434aab18c451dc3ffb9d83ee386bbb103d6dc49d8b4e6aaf6c664087c6fbf"
   },
   "css": [
@@ -64,6 +64,10 @@
     {
       "id": "post-536",
       "src": "/assets/css/elementor/post-536.css"
+    },
+    {
+      "id": "whatsapp",
+      "src": "/assets/css/whatsapp.css"
     }
   ],
   "js": [
@@ -73,6 +77,7 @@
     "/assets/css/elementor/post-535.css",
     "/assets/css/elementor/post-536.css",
     "/assets/css/fonts.css",
+    "/assets/css/whatsapp.css",
     "/assets/images/uploads/2026/06/AvisoVirtual_page1-1086x1536.webp",
     "/assets/images/uploads/2026/06/AvisoVirtual_page1-1448x2048.webp",
     "/assets/images/uploads/2026/06/AvisoVirtual_page1-212x300.webp",

@@ -171,13 +171,20 @@ function scopeKitCss(css, resetVars = []) {
   return out.join('\n') + '\n';
 }
 
-function buildShopChrome(layouts) {
+function buildShopChrome(layouts, siteVars) {
   const cfgFile = path.join(SRC, 'layouts', 'shop-chrome.json');
-  if (!exists(cfgFile) || !layouts['header-located'] || !layouts['footer-located']) return;
+  if (!exists(cfgFile) || !layouts['header-located'] || !layouts['footer-located'] || !layouts['whatsapp']) return;
   const cfg = JSON.parse(read(cfgFile));
-  let header = render(layouts['header-located'], {shop_cart: '1'}, layouts);
+  let header = render(layouts['header-located'], {...siteVars, shop_cart: '1'}, layouts);
   header = markActive(header, 'tienda/').replace(/^<header /, '<header data-arbicop-chrome="header" ');
-  const footer = render(layouts['footer-located'], {}, layouts).replace(/^<footer /, '<footer data-arbicop-chrome="footer" ');
+  // The floating WhatsApp button is appended after </footer> here (not in footer-located, which a static page also uses and base.html already adds the button there).
+  const footer = render(layouts['footer-located'], siteVars, layouts).replace(/^<footer /, '<footer data-arbicop-chrome="footer" ')
+    + '\n' + render(layouts['whatsapp'], siteVars, layouts) + '\n';
+  for (const [n, h] of [['header', header], ['footer', footer]]) {
+    const left = h.match(/\{\{\s*(?!shop:cart)[\w.:-]+\s*\}\}/g);
+    if (left) throw new Error(`shop chrome: unresolved placeholders in ${n}: ${[...new Set(left)].join(', ')}`);
+  }
+  if ((footer.match(/class="arbicop-wa"/g) || []).length !== 1) throw new Error('shop chrome: expected exactly one WhatsApp button in the footer');
   if (!header.includes('data-arbicop-chrome="header"') || !footer.includes('data-arbicop-chrome="footer"')) throw new Error('shop chrome: unexpected header/footer wrapper');
   if (!header.includes('{{shop:cart}}')) throw new Error('shop chrome: cart slot missing in header');
   const kit = scopeKitCss(read(path.join(SRC, cfg.kit)), cfg.reset_vars || []);
@@ -286,7 +293,7 @@ function build() {
   // src/public/** goes to the root of dist/ (.htaccess, robots.txt, ...)
   copyDir(path.join(SRC, 'public'), DIST);
 
-  buildShopChrome(layouts);
+  buildShopChrome(layouts, siteVars);
   console.log(`[build] ${pageCount} pages, ${copied} assets copied, ${Date.now() - t0} ms`);
 }
 
